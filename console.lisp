@@ -2250,7 +2250,11 @@ of the music."
       (gl:vertex x y (- 0 z)))))
 
 (defun draw-textured-rectangle-* (x y z width height texture 
-				  &key angle (blend :alpha) (opacity 1.0) (vertex-color "white"))
+				  &key u1 v1 u2 v2 
+				       angle 
+				       (blend :alpha)
+				       (opacity 1.0) 
+				       (vertex-color "white"))
   (if (null blend)
       (gl:disable :blend)
       (progn (enable-texture-blending)	
@@ -2271,17 +2275,54 @@ of the music."
 	(let* ((x1 (- hw))
 	       (x2 (+ hw))
 	       (y1 (- hh))
-	       (y2 (+ hh)))
+	       (y2 (+ hh))
+	       (u1* (or u1 x1))
+	       (v1* (or v1 y1))
+	       (u2* (or u2 x2))
+	       (v2* (or v2 y2)))
 	  (gl:tex-coord 0 1)
-	  (gl:vertex x1 y2 (- 0 z)) 
+	  (gl:vertex u1* v2* (- 0 z)) 
 	  (gl:tex-coord 1 1)
-	  (gl:vertex x2 y2 (- 0 z)) 
+	  (gl:vertex u2* v2* (- 0 z)) 
 	  (gl:tex-coord 1 0)
-	  (gl:vertex x2 y1 (- 0 z)) 
+	  (gl:vertex u2* v1* (- 0 z)) 
 	  (gl:tex-coord 0 0)
-	  (gl:vertex x1 y1 (- 0 z))))
+	  (gl:vertex u1* v1* (- 0 z))))
       (gl:translate (- cx) (- cy) 0))))
-      
+
+;; (defun draw-textured-rectangle-* (x y z width height texture 
+;; 				  &key angle (blend :alpha) (opacity 1.0) (vertex-color "white"))
+;;   (if (null blend)
+;;       (gl:disable :blend)
+;;       (progn (enable-texture-blending)	
+;; 	     (set-blending-mode blend)))
+;;   (gl:bind-texture :texture-2d texture)
+;;   (set-vertex-color vertex-color opacity)
+;;   ;; rotate around center
+;;   (let ((cx (- (+ x (/ width 2)) (window-x)))
+;; 	(cy (- (+ y (/ height 2)) (window-y)))
+;; 	(hh (/ height 2))
+;; 	(hw (/ width 2)))
+;;     ;; (gl:matrix-mode :modelview)
+;;     (gl:with-pushed-matrix 
+;;       (gl:load-identity)
+;;       (gl:translate cx cy 0)
+;;       (gl:rotate angle 0 0 1)
+;;       (gl:with-primitive :quads
+;; 	(let* ((x1 (- hw))
+;; 	       (x2 (+ hw))
+;; 	       (y1 (- hh))
+;; 	       (y2 (+ hh)))
+;; 	  (gl:tex-coord 0 1)
+;; 	  (gl:vertex x1 y2 (- 0 z)) 
+;; 	  (gl:tex-coord 1 1)
+;; 	  (gl:vertex x2 y2 (- 0 z)) 
+;; 	  (gl:tex-coord 1 0)
+;; 	  (gl:vertex x2 y1 (- 0 z)) 
+;; 	  (gl:tex-coord 0 0)
+;; 	  (gl:vertex x1 y1 (- 0 z))))
+;;       (gl:translate (- cx) (- cy) 0))))
+       
 (defvar *image-opacity* nil)
 
 (defun draw-image (name x y &key (z 0.0) (blend :alpha) (opacity 1.0) height width)
@@ -2435,10 +2476,10 @@ of the music."
       (font-text-extents-* string font)
     (let ((surface (sdl:create-surface width height :bpp 8))
 	  (texture (first (gl:gen-textures 1)))
-	  (renderer #'draw-utf8-solid))
-	  ;; (renderer (if *use-antialiased-text*
-	  ;; 		#'sdl:draw-string-blended-*
-	  ;; 		#'sdl:draw-string-solid-*)))
+	  ;; (renderer #'draw-utf8-solid)
+	  (renderer (if *use-antialiased-text*
+	  		#'sdl:draw-string-blended-*
+	  		#'sdl:draw-string-solid-*)))
       (prog1 texture
 	(funcall renderer string 0 0 
 		 :color (find-resource-object "white")
