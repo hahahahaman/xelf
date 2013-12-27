@@ -106,109 +106,6 @@ more information.
 (defvar *full-copyright-notice*
   (concatenate 'string *compiler-copyright-notice* *copyright-notice*))
 
-;;; Extended argument lists
-
-;; TODO remove obsolete code
-
-(defun extended-arglist-p (lambda-list)
-  "An extended argument list is like an ordinary CL argument list,
-but with each argument's entry replaced by a triple:
-
-  (ARGUMENT-NAME DATA-TYPE &rest OPTIONS)
-
-These triples may be arranged in the extended argument list just as
-in a `destructuring-bind', i.e. `&optional', `&key', and all the
-other destructuring features:
-
- ((POSITIONAL-ARG1 TYPE OPTIONS) (POSITIONAL-ARG2 TYPE OPTIONS)
-  &KEY (KEYWORD-ARG1 TYPE OPTIONS) (KEYWORD-ARG2 TYPE OPTIONS))
-
-ARG is the argument name (a symbol). DATA-TYPE is a Common Lisp
-identifier such as `integer' or `(or integer symbol)' or the like.
-See the documentation for the function `schema-option' for more
-information on the OPTIONS field.
-
-NOTE: &key and &optional are not yet implemented for extended
-arglists.
-"
-  (and (not (null lambda-list))
-       (listp (first lambda-list))
-       (not (null (first lambda-list)))))
-
-(defun schemap (datum)
-  (and (consp datum)
-       (every #'consp datum)
-       (every #'symbolp
-	      (mapcar #'first datum))))
-
-(defun schema-name (schema)
-  (first schema))
-
-(defun schema-type (schema)
-  (second schema))
-
-(defun schema-options (schema)
-  (nthcdr 2 schema))
-
-(defun schema-option (schema option)
-  "Find the value (if any) of the option named OPTION within the
-  extended argument list schema SCHEMA. The following keywords are
-  valid for OPTION:
-
-  :DEFAULT   The default value for the argument. With no default,
-             the presentation history is consulted for a value.
-
-  :DOCUMENTATION     The documentation string.
-
-  :LABEL   User-visible name of the argument. If left unset, the
-                  default is `foo bar baz' for the command
-                  `foo-bar-baz'.
-
-  :WHEN           Only read the value if this predicate-form returns 
-                  non-nil when invoked on the value.
-
-  Not yet supported:
-
-  :PROMPT    A string (or a form evaluating to a string) used as the
-             prompt for this argument.
-
-  :PROMPT-MODE   :raw means that prompt is just printed.
-                 :normal (the default) specifies standard reformatting:
-               
-                       Command Name (type1) :  <---- bright red input star
-                               (type2 [default: foo) ...
-                               (keywords) :Keyword Name (type3)
-
-
-  :DEFAULT-TYPE   The presentation type of the argument value. Use
-                  this with :default when the default value could
-                  be interpreted more than one way.
-
-  :PROVIDE-DEFAULT  When non-nil, the above options relating to
-                    defaults are activated.
-
-  :DISPLAY-DEFAULT   When non-nil, the default is printed in the
-                     prompt. Default is t.
-  :CONFIRM ..."
-  (assert (keywordp option))
-  (getf (schema-options schema) option))
-
-(defun make-lambda-list-entry (entry)
-  "Make an ordinary lambda list item corresponding to ENTRY, an
-element of an extended argument list."
-  (assert (and (not (null entry))
-	       (listp entry)))
-  (let ((name (schema-name entry)) 
-	(default (schema-option entry :default)))
-    (if (null default)
-	name
-	(list name default))))
-
-(defun make-lambda-list (arglist)
-  "Return an ordinary function lambda list corresponding to the
-extended argument list ARGLIST."
-  (cons '&optional (mapcar #'make-lambda-list-entry arglist)))
-
 ;;; Method dictionary 
 
 ;; TODO Remove obsolete code
@@ -1047,7 +944,7 @@ message queue resulting from the evaluation of EXPR."
        
 ;;; Definining methods
 
-;; TODO add CLOS defmethod support, for multimethods. still allow with-fields macro in method body
+;; TODO add CLOS defmethod support, for multimethods. ,still allow with-fields macro in method body
 ;; TODO keep old method code for backward compatibility 
 ;; TODO upgrade blocks/buffers API where necessary
 ;; TODO write some new documentation, start with full proper docstrings
