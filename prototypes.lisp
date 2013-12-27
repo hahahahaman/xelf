@@ -380,7 +380,7 @@ extended argument list ARGLIST."
   (when (not (null thing))
     (let ((result 
 	    (etypecase thing
-	      (symbol (find-prototype (make-prototype-id thing)))
+	      (symbol (find-prototype thing))
 	      (string (or (find-object-by-uuid thing :noerror)
 			  (find-prototype thing :noerror)))
 	      (xelf-object thing))))
@@ -390,10 +390,10 @@ extended argument list ARGLIST."
 	    (error "Cannot find object: ~S" thing)))))))
       
 (defun find-super (object)
-  (object-super (find-object object)))
+  (super (find-object object)))
 
 (defun find-super-prototype-name (object)
-  (let ((super (object-super (find-object object))))
+  (let ((super (super (find-object object))))
     (when super (name (find-object super)))))
 
 (defun object-eq (a b)
@@ -439,28 +439,30 @@ extended argument list ARGLIST."
   (let ((delimiter ":"))
     (if (null thing)
 	(error "Cannot make a prototype ID for nil.")
-	(string-upcase
-	 (cond 
-	   ((string= "XELF:BLOCK" thing) thing)
-	   ((xelf:object-p thing)
-	    (name thing))
-;	   ((xelfp thing) (name 
-	   ((stringp thing) 
-	    (apply #'concatenate 'string 
-		   (if (search delimiter thing)
-		       (list thing)
-		       (list (package-name package)
-			     delimiter thing))))
-	   ((symbolp thing)
-	    (let ((thing-package (symbol-package thing)))
-	      ;; check if name is already in Xelf
-	      (let ((prefix (if (eq thing-package (find-package :common-lisp))
-	      ;; (let ((prefix (if (find-prototype (concatenate 'string "XELF"
-	      ;; 						     (symbol-name thing)))
-				;; override if so
-				"XELF"
-				(package-name thing-package))))
-		(concatenate 'string prefix delimiter (symbol-name thing))))))))))
+	(cond
+	  ((string= "XELF:BLOCK" thing) thing)
+	  ((xelf:object-p thing)
+	   (name thing))
+	  ((stringp thing) 
+	   (intern thing package))
+	  ((symbolp thing) thing)))))
+
+
+	    ;; (apply #'concatenate 'string 
+	    ;; 	   (if (search delimiter thing)
+	    ;; 	       (list thing)
+	    ;; 	       (list (package-name package)
+	    ;; 		     delimiter thing))))
+
+	    ;; (let ((thing-package (symbol-package thing)))
+	    ;;   ;; check if name is already in Xelf
+	    ;;   (let ((prefix (if (eq thing-package (find-package :common-lisp))
+	    ;;   ;; (let ((prefix (if (find-prototype (concatenate 'string "XELF"
+	    ;;   ;; 						     (symbol-name thing)))
+	    ;; 			;; override if so
+	    ;; 			"XELF"
+	    ;; 			(package-name thing-package))))
+	    ;; 	(concatenate 'string prefix delimiter (symbol-name thing))))))))))
 
 ;;; Object data structure
 
@@ -587,7 +589,7 @@ is signaled, unless NOERROR is non-nil; in that case,
 	 (setf result (fref (fields pointer) field))
 	 (if (eq *lookup-failure* result)
 	     ;; it's not here. search the super, if any.
-	     (setf pointer (find-object (object-super pointer)))
+	     (setf pointer (find-object (super pointer)))
 	     ;; we found a value in this object.
 	     (setf found t)))
     (if found result
@@ -980,11 +982,11 @@ was invoked."
 				   (make-lambda-list arglist)
 				   arglist)))
       (let ((name (gensym)))
-	`(let ((prototype (find-prototype ,prototype-id :noerror)))
+	`(let ((prototype (find-prototype ',prototype-id :noerror)))
 	   ;; make sure it exists
 	   (when (null prototype)
 	     (error (format nil "Cannot define method ~A for nonexistent prototype ~A"
-			    ',method-name ,prototype-id)))
+			    ',method-name ',prototype-id)))
 	   ;; define the method's Lisp function
 	   (defun ,defun-symbol (self ,@method-lambda-list)
 	     ,@(if documentation (list documentation))
@@ -999,11 +1001,11 @@ was invoked."
 	   ;; store the method's function in the prototype's field
 	   (setf (field-value ,field-name prototype) ',defun-symbol)
 	   ;; add this method to the method dictionary
-	   (add-method-to-dictionary 
-	    ,prototype-id
-	    ,(make-keyword method-name)
-	    ',arglist
-	    ',options)
+	   ;; (add-method-to-dictionary 
+	   ;;  ',prototype-id
+	   ;;  ,(make-keyword method-name)
+	   ;;  ',arglist
+	   ;;  ',options)
 	   ;; define the other functions
 	   (export ',defun-symbol)
 	   (let ((,name ,(make-keyword method-name)))
@@ -1181,7 +1183,7 @@ OPTIONS is a property list of field options. Valid keys are:
 	      (fields (compose-blank-fields ',descriptors))
 	      (prototype (make-instance ',name
 					:fields fields
-					:name ,prototype-id
+					:name ',name
 					:uuid uuid
 					:super ',super)))
 	 ;; create the (%fieldname object) functions
@@ -1201,9 +1203,9 @@ OPTIONS is a property list of field options. Valid keys are:
 	 ;; now add it to the dictionaries
 	 (add-prototype prototype)
 	 (add-object-to-database prototype)
-	 ;; declare a variable so that SLIME can find the definition later
-	 (defparameter ,(intern (prototype-variable-name prototype-id))
-	   uuid)
+	 ;; ;; declare a variable so that SLIME can find the definition later
+	 ;; (defparameter ,(intern (prototype-variable-name prototype-id))
+	 ;;   uuid)
 	 ;; return the uuid and object
 	 (values uuid prototype)))))
   
@@ -1211,7 +1213,7 @@ OPTIONS is a property list of field options. Valid keys are:
     (and type thing
 	 (xelfp thing)
 	 (string= (make-prototype-id type)
-		(name (object-super 
+		(name (super 
 			      (find-object thing))))))
 
 ;;; Cloning and duplicating objects
@@ -1298,7 +1300,7 @@ named in the field %EXCLUDED-FIELDS will be ignored."
 		  (when (has-method :before-serialize object)
 		    (send :before-serialize object))
 		  ;; serialize
-		  (let ((super-name (name (object-super object)))
+		  (let ((super-name (name (super object)))
 			(name (name object))
 			(uuid (uuid object))
 			(fields (fields object))
@@ -1403,7 +1405,7 @@ objects after reconstruction, wherever present."
     (let ((original (find-object original0)))
       (let ((duplicate 
 	      (make-object 
-	       :super (object-super original)
+	       :super (super original)
 	       :uuid (make-uuid))))
 	(prog1 duplicate
 	  (initialize-method-cache duplicate)

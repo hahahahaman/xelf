@@ -140,8 +140,8 @@ either a symbol naming the field, or a list of the form (SYMBOL
   "List of keywords used to group blocks into different functionality
 areas.")
 
-(define-method new xblock (&rest args)
-  (apply #'clone self args))
+(defun new (class &rest args)
+  (apply #'clone class args))
 
 (define-method create xblock ()
   (new self))
