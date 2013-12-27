@@ -108,6 +108,8 @@ more information.
 
 ;;; Extended argument lists
 
+;; TODO remove obsolete code
+
 (defun extended-arglist-p (lambda-list)
   "An extended argument list is like an ordinary CL argument list,
 but with each argument's entry replaced by a triple:
@@ -208,6 +210,8 @@ extended argument list ARGLIST."
   (cons '&optional (mapcar #'make-lambda-list-entry arglist)))
 
 ;;; Method dictionary 
+
+;; TODO Remove obsolete code
 
 (defvar *methods* nil)
 
@@ -530,7 +534,6 @@ method call that references a non-existent field will signal a
   ((field-name :initarg :field-name :accessor field-name)
    (object :initarg :object :accessor object))
   (:report (lambda (condition stream)
-	     ;; TODO improve object printing
 	     (format stream "No such field ~S in object ~S." 
 		     (field-name condition)
 		     (object condition)))))
@@ -1045,7 +1048,9 @@ message queue resulting from the evaluation of EXPR."
 ;;; Definining methods
 
 ;; TODO add CLOS defmethod support, for multimethods. still allow with-fields macro in method body
-;; TODO keep old method code for backward compat w 2x0ng etc
+;; TODO keep old method code for backward compatibility 
+;; TODO upgrade blocks/buffers API where necessary
+;; TODO write some new documentation, start with full proper docstrings
 
 ;; The `define-method' macro defined below is the main top-level facility
 ;; for adding methods to prototypes.
