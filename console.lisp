@@ -2251,7 +2251,7 @@ of the music."
 
 (defun draw-textured-rectangle-* (x y z width height texture 
 				  &key u1 v1 u2 v2 
-				       angle 
+				       angle
 				       (blend :alpha)
 				       (opacity 1.0) 
 				       (vertex-color "white"))
@@ -2270,7 +2270,7 @@ of the music."
     (gl:with-pushed-matrix 
       (gl:load-identity)
       (gl:translate cx cy 0)
-      (gl:rotate angle 0 0 1)
+      (when angle (gl:rotate angle 0 0 1))
       (gl:with-primitive :quads
 	(let* ((x1 (- hw))
 	       (x2 (+ hw))
