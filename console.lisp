@@ -2724,9 +2724,6 @@ of the music."
      ,@body
      (shut-down)))
 
-(defmethod initialize-fields ((thing xelf-object)) nil)
-(defmethod initialize ((thing xelf-object) &rest args) nil)
-
 (defun edit (project)
   (with-session
       (load-project-image project)

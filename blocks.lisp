@@ -27,8 +27,10 @@
 
 (in-package :xelf)
 
-(defmethod initialize-fields ((thing xelf-object)) nil)
-(defmethod initialize ((thing xelf-object) &rest args) nil)
+;; (defmethod initialize-fields ((thing xelf-object)) nil)
+;; (defmethod initialize ((thing xelf-object) &rest args) nil)
+;; (defmethod damage ((thing xelf-object) ignore))
+
 ;; (defmethod move-to ((thing xelf-object) x y &optional z) nil)
 ;; (defmethod destroy ((thing xelf-object)))
 ;; (defmethod bounding-box ((thing xelf-object)))
@@ -799,8 +801,10 @@ See `keys.lisp' for the full table of key and modifier symbols.
   ;; don't run tasks on objects that got deleted during UPDATE
   (when %quadtree-node
     (dolist (task %tasks)
-      (unless (running task)
-	(remove-task self task)))))
+      (let ((t2 (find-object task :no-error)))
+	(when (xelfp t2)
+	  (unless (running (find-object t2))
+	    (remove-task self (find-object t2))))))))
 
 (define-method update nil ()
   "Update the simulation one step forward in time."
@@ -1698,7 +1702,7 @@ The order is (TOP LEFT RIGHT BOTTOM)."
 
 (define-method direction-to-cursor nil ()
   "Return the directional keyword naming the general direction to the cursor."
-  (direction-to-thing self (get-cursor *buffer*)))
+  (direction-to-thing self (get-cursor (current-buffer))))
 
 (define-method heading-to-thing nil (thing)
   "Return a heading (in radians) to THING."
@@ -1707,7 +1711,7 @@ The order is (TOP LEFT RIGHT BOTTOM)."
 
 (define-method heading-to-cursor nil ()
   "The heading (in radians) to the cursor from this xblock."
-  (heading-to-thing self (get-cursor *buffer*)))
+  (heading-to-thing self (get-cursor (current-buffer))))
 
 (define-method aim-at-thing nil (thing)
   "Aim the current heading at the object THING."

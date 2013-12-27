@@ -1178,6 +1178,8 @@ OPTIONS is a property list of field options. Valid keys are:
     `(progn  
        (defclass ,name ,(when super (list super)) ())
        (defmethod initialize-fields ((self ,name))
+	 (when (fboundp 'call-next-method)
+	   (call-next-method))
 	 ,@field-initializer-body)
        (let* ((uuid (make-uuid))
 	      (fields (compose-blank-fields ',descriptors))
@@ -1401,7 +1403,7 @@ objects after reconstruction, wherever present."
  (when original0
     (let ((original (find-object original0)))
       (let ((duplicate 
-	      (make-instance 'xelf-object 
+	      (make-instance (name (super original))
 	       :super (super original)
 	       :uuid (make-uuid))))
 	(prog1 duplicate

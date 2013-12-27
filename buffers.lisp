@@ -560,7 +560,7 @@
 ;;; About the cursor. deprecated.
 			        
 (define-method get-cursor buffer ()
-  %cursor)
+  (find-object %cursor))
 
 (defun cursor ()
   (find-object (get-cursor (current-buffer))))
