@@ -186,7 +186,7 @@ NODE, if any."
 
 (defun quadtree-insert (object &optional (tree *quadtree*))
   (let ((node0 
-	  (multiple-value-bind (top left right bottom) (bounding-box object)
+	  (multiple-value-bind (top left right bottom) (bounding-box (find-object object))
 	    (quadtree-search top left right bottom tree))))
     (let ((node (or node0 tree)))
       ;; (message "Inserting ~S ~S"

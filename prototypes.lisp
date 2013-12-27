@@ -302,7 +302,7 @@ extended argument list ARGLIST."
 (defvar *prototypes* nil)
 
 (defun initialize-prototypes ()
-  (setf *prototypes* (make-hash-table :test 'equal)))
+  (setf *prototypes* (make-hash-table :test 'eq)))
 
 (initialize-prototypes)
 
@@ -440,7 +440,6 @@ extended argument list ARGLIST."
     (if (null thing)
 	(error "Cannot make a prototype ID for nil.")
 	(cond
-	  ((string= "XELF:BLOCK" thing) thing)
 	  ((xelf:object-p thing)
 	   (name thing))
 	  ((stringp thing) 
@@ -486,6 +485,8 @@ extended argument list ARGLIST."
    (uuid :initform nil :accessor uuid :initarg :uuid)
    ;; The last few methods called are cached in this alist.
    (cache :initform nil :accessor cache :initarg :cache)))
+
+(add-prototype (make-instance 'xelf-object :fields nil :super nil :name 'xelf-object :uuid (make-uuid))) 
 
 (defun object-p (x)
   (typep x 'xelf:xelf-object))
@@ -946,8 +947,6 @@ The hidden argument `self' may be referred to as needed within
 the method body; it is bound to the object upon which the method
 was invoked."
   (assert method-specifier)
-  (when (listp prototype-name)
-    (error "Must specify a prototype name, found argument list instead. Did you forget the prototype name?"))
   ;; build the components of the defun
   (let ((method-name (etypecase method-specifier
 		       (symbol method-specifier)
@@ -965,7 +964,8 @@ was invoked."
 				 (when declaration
 				   ;; paste, skipping the declaration keyword
 				   (rest declaration))))
-	   (prototype-id (make-prototype-id prototype-name nil :create))
+	   (pname (or prototype-name 'xelf-object))
+	   (prototype-id (make-prototype-id pname nil :create))
 	   (field-name (make-keyword method-name))
 	   (method-symbol-name (symbol-name method-name))
 	   (method-symbol method-name) ;; fixme, unclear naming
@@ -984,9 +984,9 @@ was invoked."
       (let ((name (gensym)))
 	`(let ((prototype (find-prototype ',prototype-id :noerror)))
 	   ;; make sure it exists
-	   (when (null prototype)
-	     (error (format nil "Cannot define method ~A for nonexistent prototype ~A"
-			    ',method-name ',prototype-id)))
+ 	   ;; (when (null prototype)
+	   ;;   (error (format nil "Cannot define method ~A for nonexistent prototype ~A"
+	   ;; 		    ',method-name ',prototype-id)))
 	   ;; define the method's Lisp function
 	   (defmethod ,method-symbol ((self ,prototype-id) ,@method-lambda-list)
 	     ,@(if documentation (list documentation))
@@ -997,7 +997,7 @@ was invoked."
 		    body2))
 	   (export ',method-symbol)
 	   ;; store the method's function in the prototype's field
-	   (setf (field-value ,field-name prototype) ',method-symbol))))))
+	   (when prototype (setf (field-value ,field-name prototype) ',method-symbol)))))))
 	   ;; add this method to the method dictionary
 	   ;; (add-method-to-dictionary 
 	   ;;  ',prototype-id

@@ -307,7 +307,7 @@
 
 (define-method snap-window-to-object buffer (object)
   (multiple-value-bind (top left right bottom) 
-      (bounding-box object)
+      (bounding-box (find-object object))
     (declare (ignore right bottom))
     (move-window-to 
      self 
@@ -332,7 +332,7 @@
 
 (define-method glide-window-to-object buffer (object)
   (multiple-value-bind (top left right bottom) 
-      (bounding-box object)
+      (bounding-box (find-object object))
     (declare (ignore right bottom))
     (glide-window-to 
      self 
@@ -563,7 +563,7 @@
   %cursor)
 
 (defun cursor ()
-  (get-cursor (current-buffer)))
+  (find-object (get-cursor (current-buffer))))
 
 (defun cursorp (thing)
   (object-eq thing (cursor)))
@@ -661,9 +661,9 @@ slowdown. See also quadtree.lisp")
 	  (add-object *clipboard* object))))))
 
 (defun paste-from (self source &optional (dx 0) (dy 0))
-  (dolist (object (mapcar #'duplicate-safely (get-objects source)))
+  (dolist (object (mapcar #'duplicate-safely (get-objects (find-object source))))
     (with-fields (x y) object
-;      (clear-buffer-data object)
+      (clear-buffer-data object)
       (with-buffer self
 	(with-quadtree (%quadtree self)
 	  (add-object self object)
@@ -671,7 +671,7 @@ slowdown. See also quadtree.lisp")
   
 (defun paste-into (self source &optional (dx 0) (dy 0))
   (paste-from self source dx dy)
-  (destroy source))
+  (destroy (find-object source)))
 
 (defun paste (&optional (self (current-buffer)) (dx 0) (dy 0))
   (paste-from self *clipboard* dx dy))
@@ -742,7 +742,7 @@ slowdown. See also quadtree.lisp")
 (define-method destroy buffer ()
   (with-fields (objects inputs) self
     (loop for thing being the hash-keys of objects do
-      (destroy thing)
+      (destroy (find-object thing))
       (remhash (the simple-string thing) objects))
     (mapc #'destroy-maybe inputs)
     (mapc #'destroy-maybe %tasks)
@@ -836,8 +836,8 @@ slowdown. See also quadtree.lisp")
 (defun with-border (border buffer)
   (with-fields (height width) buffer
     (with-new-buffer 
-      (paste-from (current-buffer) buffer border border)
-      (destroy buffer)
+      (paste-from (current-buffer) (find-object buffer) border border)
+      (destroy (find-object buffer))
       (resize (current-buffer)
 	      (+ width (* border 2))
 	      (+ height (* border 2))))))
@@ -934,9 +934,9 @@ slowdown. See also quadtree.lisp")
   (multiple-value-bind (top left right bottom) (window-bounding-box self)
     (loop for object being the hash-keys of %objects do
       ;; only draw onscreen objects
-      (when (colliding-with-bounding-box object top left right bottom)
-	(draw object)
-	(after-draw-object self object)))))
+      (when (colliding-with-bounding-box (find-object object) top left right bottom)
+	(draw (find-object object))
+	(after-draw-object self (find-object object))))))
 
 (define-method draw buffer ()
   (with-buffer self
@@ -957,7 +957,7 @@ slowdown. See also quadtree.lisp")
       (draw-object-layer self)
       ;; possibly redraw cursor to ensure visibility.
       (when (and (xelfp %cursor) %redraw-cursor)
-	(draw %cursor))
+	(draw (find-object %cursor)))
       ;; draw region if needed
       (when %region (draw-region self))
       ;; draw any overlays
@@ -1020,16 +1020,16 @@ slowdown. See also quadtree.lisp")
 	  (loop for object being the hash-keys in objects do
 	    (if (xelfp object) 
 		(progn 
-		  (update object)
+		  (update (find-object object))
 		  ;; might have been destroyed during update.
 		  (when (xelfp object)
-		    (run-tasks object)))
+		    (run-tasks (find-object object))))
 		(remhash (the simple-string object) %objects)))
 	  ;; detect collisions
 	  (loop for object being the hash-values in objects do
 	    (when (xelfp object)
 	      (unless (eq :passive (field-value :collision-type object))
-		(quadtree-collide object)))))))
+		(quadtree-collide (find-object object))))))))
     ;; now outside the quadtree,
     ;; possibly update the program layer
     (with-buffer self
