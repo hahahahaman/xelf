@@ -466,6 +466,7 @@ extended argument list ARGLIST."
 ;; structure represents the object, and typically the programmer will
 ;; not need to access these structure fields.
 
+;; TODO change this to defclass
 (defstruct object
   ;; Field collection can be a hash table or list.
   fields
@@ -482,6 +483,8 @@ extended argument list ARGLIST."
   uuid
   ;; The last few methods called are cached in this alist.
   cache)
+
+;; TODO add a xelf:object-p predicate for backward compat
 
 (defun find-uuid (object)
   (when object
@@ -654,6 +657,7 @@ upon binding."
   (with-fields-ex fields expression 'let body))
 
 ;;; Basic SLIME auto documentation support
+;; TODO Remove obsolete code
 
 (defvar *method-documentation* nil)
 
@@ -834,6 +838,8 @@ finding the next implementation after that."
      ,@body))
 
 ;;; Message queueing
+
+;; TODO remove obsolete code
 
 ;; In some situations, an object will wish to queue up messages to be
 ;; sent elsewhere at a later time. `send-queue' will do this.
@@ -1037,6 +1043,9 @@ message queue resulting from the evaluation of EXPR."
 ;; 	  'self)))
        
 ;;; Definining methods
+
+;; TODO add CLOS defmethod support, for multimethods. still allow with-fields macro in method body
+;; TODO keep old method code for backward compat w 2x0ng etc
 
 ;; The `define-method' macro defined below is the main top-level facility
 ;; for adding methods to prototypes.
@@ -1242,6 +1251,8 @@ slot value is inherited."
 		      (subseq name (1+ colon))
 		      name)))))
 
+;; TODO change define-prototype to use DEFCLASS so that multimethods work
+
 (defmacro define-prototype (name
 			    (&key super 
 				  documentation
@@ -1334,6 +1345,8 @@ OPTIONS is a property list of field options. Valid keys are:
   
 ;; (defun new (prototype-name &rest initargs)
 ;;   (apply #'clone (make-prototype-id prototype-name) initargs))
+
+;; TODO change this to use make-instance
 
 (defun clone (prototype &rest initargs)
   "Create a new object from PROTOTYPE and pass INITARGS to the
