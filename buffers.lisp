@@ -1,4 +1,4 @@
-;;; buffers.lisp --- squeakish lispspaces 
+;;; buffers.lisp --- emacsy worlds of gamey objects
 
 ;; Copyright (C) 2006-2013  David O'Toole
 
@@ -463,22 +463,23 @@
 
 (defvar *object-placement-capture-hook*)
 
-(define-method add-object buffer (object &optional x y (z 0))
+(define-method add-object buffer (object0 &optional x y (z 0))
   (with-buffer self
-    (with-quadtree %quadtree
-      ;; (remove-thing-maybe self object)
-      ;; (assert (not (contains-object self object)))
-      (let ((uuid (find-uuid object)))
-	(declare (simple-string uuid))
+    (let ((object (find-object object0)))
+      (with-quadtree %quadtree
+	;; (remove-thing-maybe self object)
+	;; (assert (not (contains-object self object)))
+	(let ((uuid (find-uuid object)))
+	  (declare (simple-string uuid))
 	(setf (gethash uuid %objects) uuid))
-      (when (and (numberp x) (numberp y))
-	(setf (%x object) (cfloat x)
-	      (%y object) (cfloat y)))
-      (when (numberp z)
-	(setf (%z object) (cfloat z)))
-      (clear-saved-location object)
-      (quadtree-insert-maybe object)
-      (after-add-hook object))))
+	(when (and (numberp x) (numberp y))
+	  (setf (%x object) (cfloat x)
+		(%y object) (cfloat y)))
+	(when (numberp z)
+	  (setf (%z object) (cfloat z)))
+	(clear-saved-location object)
+	(quadtree-insert-maybe object)
+	(after-add-hook object)))))
       
 (define-method remove-object buffer (object)
   (destroy-halo object)
@@ -505,7 +506,7 @@
   (add-object self object)
   (when (and (numberp x) (numberp y))
     (move-to object x y (or z (+ %z 1))))
-  (after-drop-hook object))
+  (after-drop-hook (find-object object)))
 
 (define-method drop-selection buffer ()
   (dolist (each (get-selection self))
@@ -624,7 +625,7 @@ slowdown. See also quadtree.lisp")
 	    (setf %x 0 %y 0)
 	    (resize self (- right left) (- bottom top))
 	    ;; move all the objects
-	    (dolist (object objects)
+	    (dolist (object (mapcar #'find-object objects))
 	      (with-fields (x y) object
 		(with-quadtree quadtree
 		  (move-to object (- x left) (- y top)))))))))))
@@ -662,7 +663,7 @@ slowdown. See also quadtree.lisp")
 (defun paste-from (self source &optional (dx 0) (dy 0))
   (dolist (object (mapcar #'duplicate-safely (get-objects source)))
     (with-fields (x y) object
-      (clear-buffer-data object)
+;      (clear-buffer-data object)
       (with-buffer self
 	(with-quadtree (%quadtree self)
 	  (add-object self object)
@@ -705,7 +706,7 @@ slowdown. See also quadtree.lisp")
 
 ;;; Algebraic operations on buffers and their contents
 
-(defvar *buffer-prototype* "XELF:BUFFER")
+(defvar *buffer-prototype* 'xelf:buffer)
 
 (defmacro with-buffer-prototype (buffer &rest body)
   `(let ((*buffer-prototype* (find-super ,buffer)))
@@ -747,7 +748,7 @@ slowdown. See also quadtree.lisp")
     (mapc #'destroy-maybe %tasks)
     (setf %inputs nil)
     (setf %quadtree nil)
-    (block%destroy self)))
+    (call-next-method self)))
 
 (defun combine (buffer1 buffer2)
   (with-new-buffer 
@@ -1059,7 +1060,7 @@ slowdown. See also quadtree.lisp")
   (clear-deleted-program-objects self)
   (with-field-values (cursor quadtree focused-block) self
     (with-buffer self
-      (or (block%handle-event self event)
+      (or (call-next-method self event)
 	  (let ((thing 
 		  focused-block))
 		  ;; (if *shell-open-p* 
@@ -1406,7 +1407,7 @@ block found, or nil if none is found."
   (with-buffer self
     (unless (emptyp self)
       (trim self))
-    (start-alone self)))
+    (start-alone (find-object self))))
 
 (defun on-screen-p (thing)
   (contained-in-bounding-box 

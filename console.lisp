@@ -229,7 +229,7 @@ Do not set this variable directly from a project; instead, call
 (defun draw-blocks ()
   "Draw the active blocks to the screen."
   (dolist (block *blocks*)
-    (send :draw block)))
+    (draw block)))
 
 (defun install-blocks (&rest blocks)
   "User-level function for setting the active block set. Note that
@@ -270,7 +270,7 @@ and the like."
   (dolist (hook *event-hook*)
     (funcall hook event))
   (labels ((try (block)
-	     (send :handle-event block event)))
+	     (handle-event block event)))
     (some #'try blocks)))
 
 (defvar *event-handler-function* #'send-to-blocks
@@ -664,7 +664,7 @@ the BUTTON. STATE should be either 1 (on) or 0 (off)."
   (run-hook '*next-update-hook*)
   (setf *next-update-hook* nil)
   (dolist (block *blocks*)
-    (send :update block)))
+    (update block)))
 
 (defvar *update-function* #'update-blocks)
 
@@ -2724,6 +2724,9 @@ of the music."
      ,@body
      (shut-down)))
 
+(defmethod initialize-fields ((thing xelf-object)) nil)
+(defmethod initialize ((thing xelf-object) &rest args) nil)
+
 (defun edit (project)
   (with-session
       (load-project-image project)
@@ -2743,7 +2746,7 @@ of the music."
       (at-next-update 
        (start-alone (find-buffer name))))))
 
-(defun current-buffer () *buffer*)
+(defun current-buffer () (find-object *buffer*))
 
 (defun switch-to-buffer (thing)
   ;; accept both names and buffers
@@ -2753,7 +2756,7 @@ of the music."
 		    (find-buffer thing :create t))))
     (push (%buffer-name buffer) *buffer-history*)
     (setf *buffer* buffer)
-    (at-next-update (start-alone buffer))))
+    (at-next-update (start-alone (find-object buffer)))))
 
 (defun make-scratch-buffer ()
   (let ((buffer (find-buffer "*scratch*" :create t)))

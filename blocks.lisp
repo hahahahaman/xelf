@@ -27,6 +27,9 @@
 
 (in-package :xelf)
 
+(defmethod initialize-fields ((thing xelf-object)) nil)
+(defmethod initialize ((thing xelf-object) &rest args) nil)
+
 (defun cfloat (f) (coerce f 'single-float))
 
 (defun-memo pretty-string (thing)
@@ -130,7 +133,7 @@ either a symbol naming the field, or a list of the form (SYMBOL
 
 (defun duplicate-safely (thing)
   (let ((dupe (duplicate thing)))
-    (prog1 dupe
+    (prog1 (find-object dupe)
       (setf (field-value :quadtree-node dupe) nil)
       (setf (field-value :parent dupe) nil))))
 
@@ -163,7 +166,7 @@ areas.")
     (setf *blocks* (adjoin (find-uuid self) *blocks* :test 'equal))))
 
 (define-method start-alone xblock ()
-  (setf *blocks* (list (find-uuid self))))
+  (setf *blocks* (list self)))
 
 (define-method stop xblock ()
   "Remove this block from the simulation so that it stops getting update
@@ -259,7 +262,7 @@ initialized with BLOCKS as inputs."
   (setf %x 0 %y 0))
 
 (defun destroy-maybe (x)
-  (when (xelfp x) (destroy x)))
+  (when (xelfp x) (destroy (find-object x))))
 
 (define-method destroy xblock ()
   "Throw away this block."
@@ -525,7 +528,8 @@ any)."
 		    ;; just search event as-is
 		    (gethash event events)))))
 	(if task
-	    (prog1 (values task (evaluate task))
+	    (prog1 (values (find-object task)
+			   (evaluate (find-object task)))
 	      (invalidate-layout self))
 	    (values nil nil))))))
 
@@ -1818,7 +1822,7 @@ Note that the center-points of the objects are used for comparison."
 		(null clock)
 		(and (integerp clock)
 		     (plusp clock))))
-    (initialize%super self)
+    (call-next-method self)
     (setf %method (make-keyword method)
 	  %arguments arguments
 	  %target (find-uuid target)

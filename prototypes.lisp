@@ -726,7 +726,7 @@ If the method is not found, attempt to forward the message."
     (when (not (object-p object))
       (error "Cannot send message to non-object: ~A. Did you forget the `self' argument?" object))
     ;; check the cache
-    (let ((func (symbol-function (make-non-keyword method)))
+    (let ((func (field-value method object))
 	  (*self* object))
       (if func
 	  ;; cache hit. invoke the method and finish up.
@@ -997,7 +997,7 @@ was invoked."
 		    body2))
 	   (export ',method-symbol)
 	   ;; store the method's function in the prototype's field
-	   (setf (field-value ,field-name prototype) ',defun-symbol))))))
+	   (setf (field-value ,field-name prototype) ',method-symbol))))))
 	   ;; add this method to the method dictionary
 	   ;; (add-method-to-dictionary 
 	   ;;  ',prototype-id
@@ -1177,6 +1177,8 @@ OPTIONS is a property list of field options. Valid keys are:
 						     descriptors))))
     `(progn  
        (defclass ,name ,(when super (list super)) ())
+       (defmethod initialize-fields ((self ,name))
+	 ,@field-initializer-body)
        (let* ((uuid (make-uuid))
 	      (fields (compose-blank-fields ',descriptors))
 	      (prototype (make-instance ',name
@@ -1186,14 +1188,12 @@ OPTIONS is a property list of field options. Valid keys are:
 					:super ',super)))
 	 ;; create the (%fieldname object) functions
 	 ,@(mapcan #'make-field-accessor-forms descriptors)
-	 (setf (fref fields :field-descriptors) ',descriptors)
-	 (setf (fref fields :documentation) ,documentation)
-	 (setf (fref fields :initialize-fields) (function (lambda (self) 
-						  ,@field-initializer-body)))
+	 ;; (setf (fref fields :field-descriptors) ',descriptors)
+	 ;; (setf (fref fields :documentation) ,documentation)
 	 (initialize-method-cache prototype)
 	 ;; set the default initforms. note that you should not allocate
 	 ;; resources here.
-	 (funcall (fref fields :initialize-fields) prototype)
+	 (initialize-fields prototype)
 	 ;; ;; the prototype's super may have an initialize method.
 	 ;; ;; if so, we need to initialize the present prototype.
 	 ;; (when (has-field :initialize prototype)
@@ -1232,15 +1232,14 @@ evaluated, then any applicable initializer is triggered."
 	 (super (find-object prototype))
 	 (type (field-value :field-collection-type super))
 	 (fields (compose-blank-fields nil type))
-	 (new-object (make-instance 'xelf-object
+	 (new-object (make-instance (name super)
 				    :super super
 				  :uuid uuid
 				  :fields fields)))
     (prog1 uuid
       (initialize-method-cache new-object)
-      (funcall (field-value :initialize-fields new-object) new-objet)
-      (if (has-field :initialize new-object)
-	  (apply #'send :initialize new-object initargs))
+      (initialize-fields new-object)
+      (apply #'initialize new-object initargs)
       (add-object-to-database new-object))))
 
 ;;; Serialization support
@@ -1399,10 +1398,10 @@ objects after reconstruction, wherever present."
   (apply #'send-queue :initialize object args))
 
 (defun duplicate (original0)
-  (when original0
+ (when original0
     (let ((original (find-object original0)))
       (let ((duplicate 
-	      (make-object 
+	      (make-instance 'xelf-object 
 	       :super (super original)
 	       :uuid (make-uuid))))
 	(prog1 duplicate
