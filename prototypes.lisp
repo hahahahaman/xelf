@@ -726,7 +726,7 @@ If the method is not found, attempt to forward the message."
     (when (not (object-p object))
       (error "Cannot send message to non-object: ~A. Did you forget the `self' argument?" object))
     ;; check the cache
-    (let ((func (method-cache-lookup object method))
+    (let ((func (symbol-function (make-non-keyword method)))
 	  (*self* object))
       (if func
 	  ;; cache hit. invoke the method and finish up.
@@ -1193,7 +1193,7 @@ OPTIONS is a property list of field options. Valid keys are:
 	 (initialize-method-cache prototype)
 	 ;; set the default initforms. note that you should not allocate
 	 ;; resources here.
-	 (send :initialize-fields prototype)
+	 (funcall (fref fields :initialize-fields) prototype)
 	 ;; ;; the prototype's super may have an initialize method.
 	 ;; ;; if so, we need to initialize the present prototype.
 	 ;; (when (has-field :initialize prototype)
@@ -1238,7 +1238,7 @@ evaluated, then any applicable initializer is triggered."
 				  :fields fields)))
     (prog1 uuid
       (initialize-method-cache new-object)
-      (send :initialize-fields new-object)
+      (funcall (field-value :initialize-fields new-object) new-objet)
       (if (has-field :initialize new-object)
 	  (apply #'send :initialize new-object initargs))
       (add-object-to-database new-object))))
