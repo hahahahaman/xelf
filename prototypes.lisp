@@ -106,6 +106,109 @@ more information.
 (defvar *full-copyright-notice*
   (concatenate 'string *compiler-copyright-notice* *copyright-notice*))
 
+;;; Extended argument lists
+
+;; TODO remove obsolete code
+
+(defun extended-arglist-p (lambda-list)
+  "An extended argument list is like an ordinary CL argument list,
+but with each argument's entry replaced by a triple:
+
+  (ARGUMENT-NAME DATA-TYPE &rest OPTIONS)
+
+These triples may be arranged in the extended argument list just as
+in a `destructuring-bind', i.e. `&optional', `&key', and all the
+other destructuring features:
+
+ ((POSITIONAL-ARG1 TYPE OPTIONS) (POSITIONAL-ARG2 TYPE OPTIONS)
+  &KEY (KEYWORD-ARG1 TYPE OPTIONS) (KEYWORD-ARG2 TYPE OPTIONS))
+
+ARG is the argument name (a symbol). DATA-TYPE is a Common Lisp
+identifier such as `integer' or `(or integer symbol)' or the like.
+See the documentation for the function `schema-option' for more
+information on the OPTIONS field.
+
+NOTE: &key and &optional are not yet implemented for extended
+arglists.
+"
+  (and (not (null lambda-list))
+       (listp (first lambda-list))
+       (not (null (first lambda-list)))))
+
+(defun schemap (datum)
+  (and (consp datum)
+       (every #'consp datum)
+       (every #'symbolp
+	      (mapcar #'first datum))))
+
+(defun schema-name (schema)
+  (first schema))
+
+(defun schema-type (schema)
+  (second schema))
+
+(defun schema-options (schema)
+  (nthcdr 2 schema))
+
+(defun schema-option (schema option)
+  "Find the value (if any) of the option named OPTION within the
+  extended argument list schema SCHEMA. The following keywords are
+  valid for OPTION:
+
+  :DEFAULT   The default value for the argument. With no default,
+             the presentation history is consulted for a value.
+
+  :DOCUMENTATION     The documentation string.
+
+  :LABEL   User-visible name of the argument. If left unset, the
+                  default is `foo bar baz' for the command
+                  `foo-bar-baz'.
+
+  :WHEN           Only read the value if this predicate-form returns 
+                  non-nil when invoked on the value.
+
+  Not yet supported:
+
+  :PROMPT    A string (or a form evaluating to a string) used as the
+             prompt for this argument.
+
+  :PROMPT-MODE   :raw means that prompt is just printed.
+                 :normal (the default) specifies standard reformatting:
+               
+                       Command Name (type1) :  <---- bright red input star
+                               (type2 [default: foo) ...
+                               (keywords) :Keyword Name (type3)
+
+
+  :DEFAULT-TYPE   The presentation type of the argument value. Use
+                  this with :default when the default value could
+                  be interpreted more than one way.
+
+  :PROVIDE-DEFAULT  When non-nil, the above options relating to
+                    defaults are activated.
+
+  :DISPLAY-DEFAULT   When non-nil, the default is printed in the
+                     prompt. Default is t.
+  :CONFIRM ..."
+  (assert (keywordp option))
+  (getf (schema-options schema) option))
+
+(defun make-lambda-list-entry (entry)
+  "Make an ordinary lambda list item corresponding to ENTRY, an
+element of an extended argument list."
+  (assert (and (not (null entry))
+	       (listp entry)))
+  (let ((name (schema-name entry)) 
+	(default (schema-option entry :default)))
+    (if (null default)
+	name
+	(list name default))))
+
+(defun make-lambda-list (arglist)
+  "Return an ordinary function lambda list corresponding to the
+extended argument list ARGLIST."
+  (cons '&optional (mapcar #'make-lambda-list-entry arglist)))
+
 ;;; Method dictionary 
 
 ;; TODO Remove obsolete code
@@ -367,8 +470,7 @@ more information.
 ;; structure represents the object, and typically the programmer will
 ;; not need to access these structure fields.
 
-;; TODO change this to defclass
-(defstruct object
+(defclass object
   ;; Field collection can be a hash table or list.
   fields
   ;; Objects can inherit field values from a prototype object which
@@ -385,7 +487,8 @@ more information.
   ;; The last few methods called are cached in this alist.
   cache)
 
-;; TODO add a xelf:object-p predicate for backward compat
+(defun object-p (x)
+  (typep x 'xelf:object))
 
 (defun find-uuid (object)
   (when object
@@ -556,53 +659,6 @@ in EXPRESSION, in evaluating BODY. Each slot is accessed only once,
 upon binding."
   (with-fields-ex fields expression 'let body))
 
-;;; Basic SLIME auto documentation support
-;; TODO Remove obsolete code
-
-(defvar *method-documentation* nil)
-
-(defvar *method-arglists* nil)
-
-(defun initialize-documentation-tables ()
-  (setf *method-documentation* (make-hash-table :test 'equal))
-  (setf *method-arglists* (make-hash-table :test 'equal)))
-
-(defun method-documentation (method-symbol)
-  (if (null *method-documentation*)
-      (prog1 nil (initialize-documentation-tables))
-      (gethash (make-keyword method-symbol)
-	       *method-documentation*)))
-
-(defun set-method-documentation (method-symbol docstring)
-  (unless *method-documentation*
-    (initialize-documentation-tables))
-  (setf (gethash (make-keyword method-symbol)
-		 *method-documentation*)
-	docstring))
-
-(defsetf method-documentation set-method-documentation)
-	  
-(defun method-arglist (method-symbol)
-  (if (null *method-arglists*)
-      (prog1 :not-available (initialize-documentation-tables))
-      (gethash (make-keyword method-symbol)
-	       *method-arglists* :not-available)))
-
-(defun method-arglist-for-swank (method-symbol)
-  (let ((result (method-arglist method-symbol)))
-    (if (listp result)
-	(cons 'self result)
-	result)))
-
-(defun set-method-arglist (method-symbol arglist)
-  (unless *method-arglists*
-    (initialize-documentation-tables))
-  (setf (gethash (make-keyword method-symbol)
-		 *method-arglists*)
-	arglist))
-
-(defsetf method-arglist set-method-arglist)
-
 ;;; Methods and messages
 
 ;; Methods are function-valued fields whose first argument is the
@@ -736,82 +792,6 @@ finding the next implementation after that."
 (defmacro with-target (target &rest body)
   `(let ((*target* ,target))
      ,@body))
-
-;;; Message queueing
-
-;; TODO remove obsolete code
-
-;; In some situations, an object will wish to queue up messages to be
-;; sent elsewhere at a later time. `send-queue' will do this.
-
-;; First we need a general queue mechanism.
-
-(defstruct queue head tail count max)
-
-(define-condition empty-queue (error) ())
-
-(defun unqueue (Q)
-  (when (null (queue-head Q))
-    (error 'empty-queue))
-  (when (eq (queue-head Q)
-	    (queue-tail Q))
-    ;; only one item is in the queue; kill the tail pointer
-    (setf (queue-tail Q) nil))
-  ;; now unqueue
-  (decf (queue-count Q))
-  (pop (queue-head Q)))
-
-(defun queue (item Q)
-  (let ((element (cons item nil)))
-    (if (null (queue-tail Q))
-	;; handle empty queue
-	(progn 
-	  (setf (queue-tail Q) element
-		(queue-head Q) (queue-tail Q)
-		(queue-count Q) 1))
-	;; handle nonempty queue
-	(progn 
-	  (setf (cdr (queue-tail Q))
-		element)
-	  (pop (queue-tail Q))
-	  (incf (queue-count Q)))))
-  ;; now prevent exceeding any max that's been set. this is useful to
-  ;; prevent allocating all memory when you don't care about throwing
-  ;; away old objects.
-  (when (and (numberp (queue-max Q))
-	     (< (queue-max Q) (queue-count Q)))
-    (unqueue Q)))
-
-(defvar *message-queue* nil "This variable is bound to the current
-message queue, if any.")
-
-(defun queue-message (method-key receiver args)
-  "Enter a message into the current `*message-queue*'."
-  (queue (list method-key receiver args) *message-queue*))
-
-(defun queued-messages-p ()
-  "Return non-nil if there are queued messages."
-  (not (null (queue-head *message-queue*))))
-
-(defun unqueue-message ()
-  "Remove the next message from the queue. The returned message is a
-list of the form (METHOD-KEY RECEIVER ARGS)."
-  (unqueue *message-queue*))
-
-(defun unqueue-and-send-message ()
-  (let ((msg (unqueue-message)))
-    (destructuring-bind (method-key receiver args) msg
-      (apply #'send method-key receiver args))))
-
-(defmacro with-message-queue (expr &body body)
-  "Run the BODY forms, capturing any queued output messages to the
-message queue resulting from the evaluation of EXPR."
-  `(let ((*message-queue* ,expr))
-     ,@body))
-
-(defun send-queue (method-key object &rest args)
-  "Queue a message. Returns nil."
-  (queue-message method-key object args))
 
 ;;; Field reference syntax
 
