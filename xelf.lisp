@@ -184,6 +184,6 @@ draw-indicator load-variables *block-text-colors* defblock capture
 paste-from make-input-accessor-macrolet-clause heading-direction
 make-input-accessor-defun-forms input-reference-p input-block
 *default-quadtree-depth* input-value *block-bold* *bold* *italic*
-*block-italic* colliding-with-bounding-box define-block-macro
-heading-degrees))
+xelf-object xelf-object-p object-p *block-italic* xblock
+colliding-with-bounding-box define-block-macro heading-degrees))
 

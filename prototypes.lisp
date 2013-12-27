@@ -211,8 +211,6 @@ extended argument list ARGLIST."
 
 ;;; Method dictionary 
 
-;; TODO Remove obsolete code
-
 (defvar *methods* nil)
 
 (defun initialize-methods ()
@@ -221,7 +219,7 @@ extended argument list ARGLIST."
 (initialize-methods)
 
 (defun make-method-id (prototype method)
-  (let ((name (object-name (find-prototype prototype))))
+  (let ((name (name (find-prototype prototype))))
     (assert (stringp name))
     (concatenate 'string 
 		 (subseq name (1+ (position (character ":") name)))
@@ -274,7 +272,7 @@ extended argument list ARGLIST."
 	           
 (defun method-schema (prototype method)
   (assert (hash-table-p *methods*))
-  (let ((id (find-method-id (object-name (find-prototype prototype)) 
+  (let ((id (find-method-id (name (find-prototype prototype)) 
 			    (make-keyword method))))
     (assert (stringp id))
     (let ((result (gethash id *methods*)))
@@ -311,7 +309,7 @@ extended argument list ARGLIST."
 (defun add-prototype (object)
   (when (null *prototypes*)
     (initialize-prototypes))
-  (setf (gethash (object-name object)
+  (setf (gethash (name object)
 		 *prototypes*)
 	(find-object object)))
 
@@ -343,7 +341,7 @@ extended argument list ARGLIST."
   (when (null *database*)
     (initialize-database))
   (setf (gethash 
-	 (the simple-string (object-uuid object))
+	 (the simple-string (uuid object))
 	 *database*)
 	object))
 
@@ -367,7 +365,7 @@ extended argument list ARGLIST."
     (let ((before-count (count-entries)))
       (message "Searching in ~A objects for externals..." before-count)
       (flet ((purge (id object)
-	       (let ((name (object-name object)))
+	       (let ((name (name object)))
 		 (unless (and (stringp name)
 			      (search "XELF:" name))
 		   (remhash id *database*)))))
@@ -385,7 +383,7 @@ extended argument list ARGLIST."
 	      (symbol (find-prototype (make-prototype-id thing)))
 	      (string (or (find-object-by-uuid thing :noerror)
 			  (find-prototype thing :noerror)))
-	      (object thing))))
+	      (xelf-object thing))))
       (prog1 result
 	(unless no-error
 	  (when (null result)
@@ -396,7 +394,7 @@ extended argument list ARGLIST."
 
 (defun find-super-prototype-name (object)
   (let ((super (object-super (find-object object))))
-    (when super (object-name (find-object super)))))
+    (when super (name (find-object super)))))
 
 (defun object-eq (a b)
   (when (and a b)
@@ -445,8 +443,8 @@ extended argument list ARGLIST."
 	 (cond 
 	   ((string= "XELF:BLOCK" thing) thing)
 	   ((xelf:object-p thing)
-	    (object-name thing))
-;	   ((xelfp thing) (object-name 
+	    (name thing))
+;	   ((xelfp thing) (name 
 	   ((stringp thing) 
 	    (apply #'concatenate 'string 
 		   (if (search delimiter thing)
@@ -470,29 +468,29 @@ extended argument list ARGLIST."
 ;; structure represents the object, and typically the programmer will
 ;; not need to access these structure fields.
 
-(defclass object
+(defclass xelf-object ()
   ;; Field collection can be a hash table or list.
-  fields
-  ;; Objects can inherit field values from a prototype object which
-  ;; then influences the new object's behavior. We must store a link
-  ;; to this "super" object so that `field-value' can obtain the
-  ;; inherited field values.
-  super
-  ;; Objects may have names. A name is a string that identifies the
-  ;; object. Named objects are "prototypes" from which other objects
-  ;; may be created or "cloned".
-  name
-  ;; Here's the uuid string.
-  uuid
-  ;; The last few methods called are cached in this alist.
-  cache)
+  ((fields :initform nil :accessor fields :initarg :fields)
+   ;; Objects can inherit field values from a prototype object which
+   ;; then influences the new object's behavior. We must store a link
+   ;; to this "super" object so that `field-value' can obtain the
+   ;; inherited field values.
+   (super :initform nil :accessor super :initarg :super )
+   ;; Objects may have names. A name is a string that identifies the
+   ;; object. Named objects are "prototypes" from which other objects
+   ;; may be created or "cloned".
+   (name :initform nil :accessor name :initarg :name)
+   ;; Here's the uuid string.
+   (uuid :initform nil :accessor uuid :initarg :uuid)
+   ;; The last few methods called are cached in this alist.
+   (cache :initform nil :accessor cache :initarg :cache)))
 
 (defun object-p (x)
-  (typep x 'xelf:object))
+  (typep x 'xelf:xelf-object))
 
 (defun find-uuid (object)
   (when object
-    (object-uuid (find-object object))))
+    (uuid (find-object object))))
 
 (defun verify (thing)
   (assert (object-p (find-object thing))))
@@ -586,7 +584,7 @@ is signaled, unless NOERROR is non-nil; in that case,
 	result found)
     ;; search the chain of objects for a field value.
     (loop while (and pointer (not found)) do
-	 (setf result (fref (object-fields pointer) field))
+	 (setf result (fref (fields pointer) field))
 	 (if (eq *lookup-failure* result)
 	     ;; it's not here. search the super, if any.
 	     (setf pointer (find-object (object-super pointer)))
@@ -601,7 +599,7 @@ is signaled, unless NOERROR is non-nil; in that case,
   "For each field in OBJECT's field collection, the supplied FUNCTION
 is invoked with the field-name and corresponding value as its two
 arguments."
-  (let ((fields (object-fields object)))
+  (let ((fields (fields object)))
     (etypecase fields
       (hash-table (prog1 nil (maphash function fields)))
       (list (loop while fields 
@@ -611,7 +609,7 @@ arguments."
 
 (defun has-local-value (field thing)
   (let ((object (find-object thing)))
-    (not (eq *lookup-failure* (fref (object-fields object) field)))))
+    (not (eq *lookup-failure* (fref (fields object) field)))))
 
 (defun set-field-value (field thing value)
   "Set OBJECT's FIELD to VALUE.
@@ -620,11 +618,11 @@ The new value overrides any inherited value."
   (prog1 value
     (let ((object (find-object thing)))
       (multiple-value-bind (value fields)
-	  (set-fref (object-fields object) field value)
+	  (set-fref (fields object) field value)
 	    ;; don't lose new list heads
 	(prog1 value 
 	  (when (consp fields)
-	    (setf (object-fields object) fields)))))))
+	    (setf (fields object) fields)))))))
   
 (defsetf field-value set-field-value)
 
@@ -674,12 +672,12 @@ upon binding."
 (defconstant +cache-size+ 6)
 
 (defun initialize-method-cache (object)
-  (setf (object-cache object) 
+  (setf (slot-value object 'cache)
 	(list (cons nil nil) (cons nil nil) (cons nil nil)
 	      (cons nil nil) (cons nil nil) (cons nil nil))))
 
 (defun cache-method (object method func)
-  (let ((cache (object-cache object))
+  (let ((cache (cache object))
 	(entry nil))
     (assert (listp cache))
     (rotatef (sixth cache)
@@ -694,9 +692,8 @@ upon binding."
 
 (defun method-cache-lookup (object method)
   (declare (optimize (speed 3))
-	   (inline object-cache)
 	   (type keyword method))
-  (cdr (assoc method (object-cache object))))
+  (cdr (assoc method (slot-value object 'cache))))
 
 ;; Next comes the basic function for sending a message synchronously
 ;; and obtaining a return value.  
@@ -924,8 +921,6 @@ finding the next implementation after that."
        
 ;;; Definining methods
 
-;; TODO add CLOS defmethod support, for multimethods. ,still allow with-fields macro in method body
-;; TODO keep old method code for backward compatibility 
 ;; TODO upgrade blocks/buffers API where necessary
 ;; TODO write some new documentation, start with full proper docstrings
 
@@ -1133,8 +1128,6 @@ slot value is inherited."
 		      (subseq name (1+ colon))
 		      name)))))
 
-;; TODO change define-prototype to use DEFCLASS so that multimethods work
-
 (defmacro define-prototype (name
 			    (&key super 
 				  documentation
@@ -1182,45 +1175,43 @@ OPTIONS is a property list of field options. Valid keys are:
 	 (prototype-id (make-prototype-id name *project* :create))
 	 (field-initializer-body (delete nil (mapcar #'make-field-initializer 
 						     descriptors))))
-    `(let* ((uuid (make-uuid))
-	    (fields (compose-blank-fields ',descriptors))
-	    (super-name (let ((ss ',super))
-			  (cond
-			    ((and ss (symbolp ss))
-			     (object-name (find-object ss)))
-			    ((stringp ss) ss))))
-	    (prototype (make-object :fields fields
-				    :name ,prototype-id
-				    :uuid uuid
-				    :super super-name)))
-       ;; create the (%fieldname object) functions
-       ,@(mapcan #'make-field-accessor-forms descriptors)
-       (setf (fref fields :field-descriptors) ',descriptors)
-       (setf (fref fields :documentation) ,documentation)
-       (setf (fref fields :initialize-fields) (function (lambda (self) 
-						,@field-initializer-body)))
-       (initialize-method-cache prototype)
-       ;; set the default initforms. note that you should not allocate
-       ;; resources here.
-       (send :initialize-fields prototype)
-       ;; ;; the prototype's super may have an initialize method.
-       ;; ;; if so, we need to initialize the present prototype.
-       ;; (when (has-field :initialize prototype)
-       ;; 	 (send :initialize prototype))
-       ;; now add it to the dictionaries
-       (add-prototype prototype)
-       (add-object-to-database prototype)
-       ;; declare a variable so that SLIME can find the definition later
-       (defparameter ,(intern (prototype-variable-name prototype-id))
-	 uuid)
-       ;; return the uuid and object
-       (values uuid prototype))))
-
-(defun is-a (type thing)
-  (and type thing
-       (xelfp thing)
-       (string= (make-prototype-id type)
-		(object-name (object-super 
+    `(progn  
+       (defclass ,name ,(when super (list super)) ())
+       (let* ((uuid (make-uuid))
+	      (fields (compose-blank-fields ',descriptors))
+	      (prototype (make-instance ',name
+					:fields fields
+					:name ,prototype-id
+					:uuid uuid
+					:super ',super)))
+	 ;; create the (%fieldname object) functions
+	 ,@(mapcan #'make-field-accessor-forms descriptors)
+	 (setf (fref fields :field-descriptors) ',descriptors)
+	 (setf (fref fields :documentation) ,documentation)
+	 (setf (fref fields :initialize-fields) (function (lambda (self) 
+						  ,@field-initializer-body)))
+	 (initialize-method-cache prototype)
+	 ;; set the default initforms. note that you should not allocate
+	 ;; resources here.
+	 (send :initialize-fields prototype)
+	 ;; ;; the prototype's super may have an initialize method.
+	 ;; ;; if so, we need to initialize the present prototype.
+	 ;; (when (has-field :initialize prototype)
+	 ;; 	 (send :initialize prototype))
+	 ;; now add it to the dictionaries
+	 (add-prototype prototype)
+	 (add-object-to-database prototype)
+	 ;; declare a variable so that SLIME can find the definition later
+	 (defparameter ,(intern (prototype-variable-name prototype-id))
+	   uuid)
+	 ;; return the uuid and object
+	 (values uuid prototype)))))
+  
+  (defun is-a (type thing)
+    (and type thing
+	 (xelfp thing)
+	 (string= (make-prototype-id type)
+		(name (object-super 
 			      (find-object thing))))))
 
 ;;; Cloning and duplicating objects
@@ -1228,22 +1219,21 @@ OPTIONS is a property list of field options. Valid keys are:
 ;; (defun new (prototype-name &rest initargs)
 ;;   (apply #'clone (make-prototype-id prototype-name) initargs))
 
-;; TODO change this to use make-instance
-
 (defun clone (prototype &rest initargs)
   "Create a new object from PROTOTYPE and pass INITARGS to the
 initializer. The new object is created with fields for which INITFORMS
 were specified (if any; see `define-prototype'); the INITFORMS are
 evaluated, then any applicable initializer is triggered."
   ;; navigate to parent if a non-prototype is passed
-  (when (not (object-name (find-object prototype)))
+  (when (not (name (find-object prototype)))
     (setf prototype (find-super prototype)))
   ;; now clone it
   (let* ((uuid (make-uuid))
 	 (super (find-object prototype))
 	 (type (field-value :field-collection-type super))
 	 (fields (compose-blank-fields nil type))
-	 (new-object (make-object :super super
+	 (new-object (make-instance 'xelf-object
+				    :super super
 				  :uuid uuid
 				  :fields fields)))
     (prog1 uuid
@@ -1308,10 +1298,10 @@ named in the field %EXCLUDED-FIELDS will be ignored."
 		  (when (has-method :before-serialize object)
 		    (send :before-serialize object))
 		  ;; serialize
-		  (let ((super-name (object-name (object-super object)))
-			(name (object-name object))
-			(uuid (object-uuid object))
-			(fields (object-fields object))
+		  (let ((super-name (name (object-super object)))
+			(name (name object))
+			(uuid (uuid object))
+			(fields (fields object))
 			(plist nil))
 		    (assert (and super-name 
 				 (null name)
@@ -1419,7 +1409,7 @@ objects after reconstruction, wherever present."
 	  (initialize-method-cache duplicate)
 	  (add-object-to-database duplicate)
 	  ;; copy any local field values
-	  (let* ((fields (object-fields original))
+	  (let* ((fields (fields original))
 		 (fields0 fields)
 		 names)
 	    (if (hash-table-p fields)
@@ -1528,7 +1518,7 @@ objects after reconstruction, wherever present."
 
 ;;; Printing objects
 
-(defun get-some-object-name (ob)
+(defun get-some-name (ob)
   (if (null ob)
       "NULL!!"
       (let ((object (find-object ob)))
@@ -1547,10 +1537,10 @@ objects after reconstruction, wherever present."
 (defun print-blx (foo stream)
   (let ((object (find-object foo)))
     (format stream "#<% ~A ~A>" 
-	    (get-some-object-name object)
+	    (get-some-name object)
 	    (object-address-string object))))
 
-(defmethod print-object ((foo xelf:object) stream)
+(defmethod print-object ((foo xelf:xelf-object) stream)
   (print-blx foo stream))
 
 ;;; prototypes.lisp ends here

@@ -47,7 +47,7 @@
     (substitute #\- #\Space 
 		(string-trim " " string)))))
 
-(define-prototype block ()
+(define-prototype xblock (:super xelf-object)
   (excluded-fields :initform '(:quadtree-node))
   (field-collection-type :initform :list)
   ;;
@@ -116,23 +116,14 @@ The remaining arguments ARGS are field specifiers, each of which is
 either a symbol naming the field, or a list of the form (SYMBOL
 . PROPERTIES) with :INITFORM and :DOCUMENTATION as valid keys."
   (let ((name0 nil)
-	(super0 "XELF:BLOCK"))
+	(super0 'xelf:xblock))
     (etypecase spec
       (symbol (setf name0 spec))
       (list (destructuring-bind (name &key super) spec
 	      (setf name0 name)
 	      (when super (setf super0 super)))))
-    ;; ;; make fields accessible from Forth
-    ;; (define-field-accessor-words 
-    ;; 	(etypecase (first args)
-    ;; 	  (keyword (mapcar #'first (plist-to-descriptors args)))
-    ;; 	  (cons (mapcar #'(lambda (x)
-    ;; 			    (if (consp x) (first x) x))
-    ;; 			args))
-    ;; 	  (symbol args)))
-    ;; install the definition.
     `(define-prototype ,name0 
-	 (:super ,(make-prototype-id super0 *project* :create))
+	 (:super ,super0)
        ,@(if (keywordp (first args))
 	  (plist-to-descriptors args)
 	  args))))
@@ -149,47 +140,47 @@ either a symbol naming the field, or a list of the form (SYMBOL
   "List of keywords used to group blocks into different functionality
 areas.")
 
-(define-method new block (&rest args)
+(define-method new xblock (&rest args)
   (apply #'clone self args))
 
-(define-method create block ()
+(define-method create xblock ()
   (new self))
 
-(define-method forward-message block (method args)
+(define-method forward-message xblock (method args)
   (apply #'send method self args))
 
-(define-method set-field block (field value)
+(define-method set-field xblock (field value)
   (setf (field-value field (evaluate self)) value))
 
-(define-method get-field block (field)
+(define-method get-field xblock (field)
   (field-value field (evaluate self)))
 
-;;; Adding blocks to the simulation
+;;; Adding xblocks to the simulation
 
-(define-method start block ()
+(define-method start xblock ()
   "Add this block to the simulation so that it receives update events."
   (unless (find self *blocks* :test 'eq :key #'find-object)
     (setf *blocks* (adjoin (find-uuid self) *blocks* :test 'equal))))
 
-(define-method start-alone block ()
+(define-method start-alone xblock ()
   (setf *blocks* (list (find-uuid self))))
 
-(define-method stop block ()
+(define-method stop xblock ()
   "Remove this block from the simulation so that it stops getting update
 events."
   (setf *blocks* (delete (find-uuid self) *blocks* :test #'equal)))
 
 ;;; Read-only status
 
-(define-method toggle-read-only block ()
+(define-method toggle-read-only xblock ()
   (setf %read-only (if %read-only nil t)))
 
-(define-method read-only-p block () %read-only)
+(define-method read-only-p xblock () %read-only)
 
-(define-method set-read-only block (&optional (read-only t))
+(define-method set-read-only xblock (&optional (read-only t))
   (setf %read-only read-only))
 
-(define-method child-updated block (child))
+(define-method child-updated xblock (child))
 
 ;;; Defining composite blocks more simply
 
@@ -201,14 +192,14 @@ events."
        (%inputs object)))
 
 (defmacro define-block-macro (name 
-     (&key (super "XELF:BLOCK") fields documentation inputs)
+     (&key (super 'xblock) fields documentation inputs)
      &body body)
   "Define a new block called NAME according to the given options.
 
 The argument SUPER should be the name (a symbol or string) of the base
 prototype to inherit traits (data and behavior) from. The default is
-`block' so that if you don't specify a SUPER argument, you still
-inherit all the inbuilt behaviors of blocks.
+`xblock' so that if you don't specify a SUPER argument, you still
+inherit all the inbuilt behaviors of xblocks.
 
 The argument FIELDS should be a list of field descriptors, the same as
 would be given to `define-prototype'.
@@ -253,7 +244,7 @@ streams as a basis.
 
 ;;; Block lifecycle
 
-(define-method initialize block (&rest blocks)
+(define-method initialize xblock (&rest blocks)
   "Prepare an empty block, or if BLOCKS is non-empty, a block
 initialized with BLOCKS as inputs."
   (setf %inputs 
@@ -270,7 +261,7 @@ initialized with BLOCKS as inputs."
 (defun destroy-maybe (x)
   (when (xelfp x) (destroy x)))
 
-(define-method destroy block ()
+(define-method destroy xblock ()
   "Throw away this block."
   (mapc #'destroy-maybe %inputs)
   (mapc #'destroy-maybe %tasks)
@@ -288,26 +279,26 @@ initialized with BLOCKS as inputs."
     (prog1 t
       (assert (not (find-object uuid :no-error))))))
 
-(define-method dismiss block ()
+(define-method dismiss xblock ()
   ;; (if (windowp %parent)
   ;;     (dismiss %parent)
       (destroy self))
 
-(define-method exit block ()
+(define-method exit xblock ()
   (remove-object *buffer* self))
 
-(define-method make-duplicate block ()
+(define-method make-duplicate xblock ()
   (duplicate self))
 
-(define-method make-clone block ()
+(define-method make-clone xblock ()
   (find-uuid (clone (find-super self))))
 
-(define-method register-uuid block ()
+(define-method register-uuid xblock ()
   (add-object-to-database self))
 
 ;;; Block tags, used for categorizing blocks
 
-(define-method has-tag block 
+(define-method has-tag xblock 
     ((tag symbol :default nil :label ""))
   "Return non-nil if this block has the specified TAG.
 
@@ -317,39 +308,39 @@ engine. The field `%tags' is a set of keyword symbols; if a symbol
 "
   (member tag %tags))
 
-(define-method add-tag block 
+(define-method add-tag xblock 
     ((tag symbol :default nil :label ""))
   "Add the specified TAG symbol to this block."
   (pushnew tag %tags))
 
-(define-method remove-tag block 
+(define-method remove-tag xblock 
     ((tag symbol :default nil :label ""))
   "Remove the specified TAG symbol from this block."
   (setf %tags (remove tag %tags)))
 
 ;;; Serialization hooks
 
-(define-method before-serialize block ())
+(define-method before-serialize xblock ())
 
-(define-method after-deserialize block ()
+(define-method after-deserialize xblock ()
   "Prepare a deserialized block for running."
   (bind-any-default-events self)
   (register-uuid self))
 
 ;;; Expression structure (blocks composed into trees)
 
-(define-method adopt block (child)
+(define-method adopt xblock (child)
   (when (get-parent child)
     (unplug-from-parent child))
   (set-parent child self))
 
-(define-method update-parent-links block ()
+(define-method update-parent-links xblock ()
   (dolist (each %inputs)
     (set-parent each self)))
 
-(define-method can-accept block () nil)
+(define-method can-accept xblock () nil)
 
-(define-method accept block (other-block)
+(define-method accept xblock (other-block)
   "Try to accept OTHER-BLOCK as a drag-and-dropped input. Return
 non-nil to indicate that the block was accepted, nil otherwise."
   nil)
@@ -357,7 +348,7 @@ non-nil to indicate that the block was accepted, nil otherwise."
 (defvar *buffers* nil
   "When non-nil, the UUID of the current buffer object.")
 
-(define-method contains block (block)
+(define-method contains xblock (block)
   (block finding
     (dolist (this %inputs)
       (when (object-eq block this)
@@ -368,7 +359,7 @@ non-nil to indicate that the block was accepted, nil otherwise."
   ;; 	:test 'eq
   ;; 	:key #'find-object))
 
-(define-method input-position block (input)
+(define-method input-position xblock (input)
   (assert (not (null input)))
   (position (find-uuid input) %inputs :key #'find-uuid :test 'equal))
 
@@ -377,18 +368,18 @@ non-nil to indicate that the block was accepted, nil otherwise."
     (assert (not (null inputs)))
     (nth (input-position self name) inputs)))
 
-(defun (setf input) (self name block)
+(defun (setf input) (self name xblock)
   (with-fields (inputs) self
     (assert (not (null inputs)))
-    (set-parent block self)
+    (set-parent xblock self)
     (setf (nth (input-position self name) inputs)
 	  ;; store the real link
-  	  (find-object block))))
+  	  (find-object xblock))))
 
-(define-method position-within-parent block ()
+(define-method position-within-parent xblock ()
   (input-position %parent self))
 
-(define-method set-parent block (parent)
+(define-method set-parent xblock (parent)
   "Store a UUID link to the enclosing block PARENT."
   (assert (not (null parent)))
   (assert (valid-connection-p parent self))
@@ -396,10 +387,10 @@ non-nil to indicate that the block was accepted, nil otherwise."
 		  ;; always store uuid to prevent circularity
 		  (find-uuid parent))))
 	       
-(define-method get-parent block ()
+(define-method get-parent xblock ()
   %parent)
 
-(define-method find-parent block ()
+(define-method find-parent xblock ()
   (when %parent (find-uuid %parent)))
 
 (defun valid-connection-p (sink source)
@@ -414,12 +405,12 @@ non-nil to indicate that the block was accepted, nil otherwise."
 	      (return-from checking nil)
 	      (setf pointer (find-parent pointer))))))))
 
-(define-method update-result-lists block ()
+(define-method update-result-lists xblock ()
   (let ((len (length %inputs)))
     (setf %input-widths (make-list len :initial-element 0))
     (setf %results (make-list len))))
 
-(define-method delete-input block (block)
+(define-method delete-input xblock (block)
   (with-fields (inputs) self
     (prog1 t
       (assert (contains self block))
@@ -428,27 +419,27 @@ non-nil to indicate that the block was accepted, nil otherwise."
 			   :test 'eq))
       (assert (not (contains self block))))))
 
-(define-method default-inputs block ()
+(define-method default-inputs xblock ()
   nil)
 
-(define-method this-position block ()
+(define-method this-position xblock ()
   (with-fields (parent) self
     (when parent
       (input-position parent self))))
 
-(define-method plug block (thing n)
+(define-method plug xblock (thing n)
   "Connect the block THING as the value of the Nth input."
   (set-parent thing self)
   (setf (input self n) thing))
 
-(define-method after-unplug-hook block (parent))
+(define-method after-unplug-hook xblock (parent))
   ;; (setf %parent nil)
   ;; (add-object (current-buffer) self))
 
-(define-method after-release-hook block ())
+(define-method after-release-hook xblock ())
 
-(define-method unplug block (input)
-  "Disconnect the block INPUT from this block."
+(define-method unplug xblock (input)
+  "Disconnect the block INPUT from this xblock."
   (with-fields (inputs parent) self
     (assert (contains self input))
     (prog1 input
@@ -457,7 +448,7 @@ non-nil to indicate that the block was accepted, nil otherwise."
 		    :test 'eq :key #'find-object))
       (after-unplug-hook input self))))
 
-(define-method unplug-from-parent block ()
+(define-method unplug-from-parent xblock ()
   (when %parent
     (prog1 t
       (with-fields (parent) self
@@ -467,19 +458,19 @@ non-nil to indicate that the block was accepted, nil otherwise."
 ;	(assert (not (contains parent self)))
 	(setf parent nil)))))
 
-(define-method drop block (new-block &optional (dx 0) (dy 0) (dz 1))
+(define-method drop xblock (new-block &optional (dx 0) (dy 0) (dz 1))
   "Add a new object to the current buffer at the current position.
 Optionally provide an x-offset DX and a y-offset DY. The optional
 z-offset DZ defaults to 1, which stacks the object on top of Self.
 See also `drop-at'."
   (add-object (current-buffer) new-block (+ %x dx) (+ %y dy) (+ %z dz)))
 
-(define-method drop-at block (new-block x y &optional z)
+(define-method drop-at xblock (new-block x y &optional z)
   "Add the NEW-BLOCK to the current buffer at the location X,Y."
   (assert (and (numberp x) (numberp y)))
   (add-object (current-buffer) new-block x y z))
 
-(define-method clear-buffer-data block ()
+(define-method clear-buffer-data xblock ()
   (clear-saved-location self)
   (setf %quadtree-node nil)
   (setf %parent nil))
@@ -488,12 +479,12 @@ See also `drop-at'."
 
 ;; see also definition of "task" blocks below.
 
-(define-method initialize-events-table-maybe block (&optional force)
+(define-method initialize-events-table-maybe xblock (&optional force)
   (when (or force 
 	    (not (has-local-value :events self)))
     (setf %events (make-hash-table :test 'equal))))
 
-(define-method bind-event-to-task block (event-name modifiers task)
+(define-method bind-event-to-task xblock (event-name modifiers task)
   "Bind the described event to invoke the action of the TASK.
 EVENT-NAME is either a keyword symbol identifying the keyboard key, or
 a string giving the Unicode character to be bound. MODIFIERS is a list
@@ -504,12 +495,12 @@ of keywords like :control, :alt, and so on."
     (setf (gethash event %events)
 	  task)))
 
-(define-method unbind-event block (event-name modifiers)
+(define-method unbind-event xblock (event-name modifiers)
   "Remove the described event binding."
   (remhash (normalize-event (cons event-name modifiers))
 	   %events))
 
-(define-method handle-event block (event)
+(define-method handle-event xblock (event)
   "Look up and invoke the block task (if any) bound to
 EVENT. Return the task if a binding was found, nil otherwise. The
 second value returned is the return value of the evaluated task (if
@@ -538,14 +529,14 @@ any)."
 	      (invalidate-layout self))
 	    (values nil nil))))))
 
-(define-method handle-text-event block (event)
+(define-method handle-text-event xblock (event)
   "Look up events as with `handle-event', but insert
 unhandled/unmodified keypresses as Unicode characters via the `insert'
 function."
   (unless (joystick-event-p event)
     (with-fields (events) self
       (destructuring-bind (key . unicode) (first event)
-	(when (or (block%handle-event self event)
+	(when (or (xblock%handle-event self event)
 		  ;; treat non-alt-control Unicode characters as self-inserting
 		  (when 
 		      (and (not (eq :return key))
@@ -566,7 +557,7 @@ whenever the event (EVENT-NAME . MODIFIERS) is received."
 			   mods
 			   (new 'task method-name block))))
 
-(define-method bind-event block (event binding)
+(define-method bind-event xblock (event binding)
   "Bind the EVENT to invoke the action specified in BINDING.
 EVENT is a list of the form:
 
@@ -596,14 +587,14 @@ See `keys.lisp' for the full table of key and modifier symbols.
 			   :arguments (rest binding))))
 	 (bind-event-to-task self name modifiers task))))))
 
-(define-method bind-any-default-events block ()
+(define-method bind-any-default-events xblock ()
   (with-fields (default-events) self
     (when default-events
       (initialize-events-table-maybe self :force)
       (dolist (entry default-events)
 	(apply #'bind-event self entry)))))
 
-(define-method destroy-events block ()
+(define-method destroy-events xblock ()
   (when %events
     (loop for event being the hash-values of %events do 
       (destroy-maybe event))))
@@ -612,10 +603,10 @@ See `keys.lisp' for the full table of key and modifier symbols.
   (bind-event-to-task self key mods 
 			 (new 'task :insert-string self (list text))))
     
-(define-method insert block (&optional x y z)
+(define-method insert xblock (&optional x y z)
   (drop-object (current-buffer) self x y z))
 
-(define-method insert-string block (string)
+(define-method insert-string xblock (string)
   (declare (ignore string))
   nil)
 
@@ -667,13 +658,13 @@ See `keys.lisp' for the full table of key and modifier symbols.
 (defun keybinding-action (binding)
   (nthcdr 2 binding))
 
-(define-method install-keybindings block (keybindings)
+(define-method install-keybindings xblock (keybindings)
   (dolist (binding keybindings)
     (bind-event self 
 		(keybinding-event binding)
 		(keybinding-action binding))))
         
-(define-method install-text-keybindings block (&optional (keybindings *text-qwerty-keybindings*))
+(define-method install-text-keybindings xblock (&optional (keybindings *text-qwerty-keybindings*))
   ;; install UI keys that will vary by locale
   (with-fields (events) self
     (setf events (make-hash-table :test 'equal))
@@ -685,39 +676,39 @@ See `keys.lisp' for the full table of key and modifier symbols.
 
 ;;; Pointer events (see also buffers.lisp)
 
-(define-method select block () nil)
+(define-method select xblock () nil)
 
-(define-method tap block (x y))
+(define-method tap xblock (x y))
 
-(define-method alternate-tap block (x y)
+(define-method alternate-tap xblock (x y)
   (when (shell-open-p) 
     (toggle-halo self)))
 
-(define-method scroll-tap block (x y)
+(define-method scroll-tap xblock (x y)
   (declare (ignore x y))
   nil)
 
-(define-method scroll-up block ())
+(define-method scroll-up xblock ())
 
-(define-method scroll-down block ())
+(define-method scroll-down xblock ())
 
-(define-method scroll-left block ())
+(define-method scroll-left xblock ())
 
-(define-method scroll-right block ())
+(define-method scroll-right xblock ())
 
-(define-method handle-point-motion block (x y)
+(define-method handle-point-motion xblock (x y)
   (declare (ignore x y)))
 
-(define-method press block (x y button)
+(define-method press xblock (x y button)
   (declare (ignore x y button)))
 
-(define-method release block (x y button)
+(define-method release xblock (x y button)
   (declare (ignore x y button)))
 
-(define-method can-pick block () 
+(define-method can-pick xblock () 
   (not %pinned))
 
-(define-method pick block ()
+(define-method pick xblock ()
   (with-fields (pinned parent) self
     (if (not pinned)
 	self
@@ -725,7 +716,7 @@ See `keys.lisp' for the full table of key and modifier symbols.
 		   (can-pick parent))
 	  (pick parent)))))
 
-(define-method topmost block ()
+(define-method topmost xblock ()
   (let ((this self)
 	(next nil))
     (block searching
@@ -736,94 +727,94 @@ See `keys.lisp' for the full table of key and modifier symbols.
 	  (return-from searching this))
 	(setf this next)))))
 
-(define-method after-add-hook block () nil)
+(define-method after-add-hook xblock () nil)
 
-(define-method after-drag-hook block () nil)
+(define-method after-drag-hook xblock () nil)
 
 ;;; Focus events (see also buffers.lisp)
 
-(define-method focus block () (setf %focused-p t))
+(define-method focus xblock () (setf %focused-p t))
 
-(define-method lose-focus block () (setf %focused-p nil))
+(define-method lose-focus xblock () (setf %focused-p nil))
 
-(define-method grab-focus block () 
+(define-method grab-focus xblock () 
   (send :focus-on (current-buffer) self :clear-selection nil))
 
-(define-method pick-focus block () self)
+(define-method pick-focus xblock () self)
 
 ;;; Squeak-style pop-up halo with action handles
 
 ;; see also halo.lisp
 
-(define-method make-halo block ()
+(define-method make-halo xblock ()
   (when (null %halo)
     (setf %halo (new 'halo self))
     (add-block (current-buffer) %halo)))
 
-(define-method destroy-halo block ()
+(define-method destroy-halo xblock ()
   (when (xelfp %halo)
     (destroy %halo))
   (setf %halo nil))
 
-(define-method toggle-halo block (&optional force)
+(define-method toggle-halo xblock (&optional force)
   (if %halo
       (destroy-halo self)
       (when (or force (not %pinned))
 	(make-halo self))))
 
-(define-method align-to-pixels block ()
+(define-method align-to-pixels xblock ()
   (setf %x (truncate %x))
   (setf %y (truncate %y)))
 
-(define-method drag block (x y)
+(define-method drag xblock (x y)
   (move-to self x y))
 
-(define-method as-drag block (x y)
+(define-method as-drag xblock (x y)
   self)
 
-(define-method as-target block () self)
+(define-method as-target xblock () self)
 
-(define-method can-escape block ()
+(define-method can-escape xblock ()
   t)
 
 ;;; Tasks and updating
 
 ;; See also definition of "task" blocks below.
 
-(define-method add-task block (task)
+(define-method add-task xblock (task)
   (assert (xelfp task))
   (pushnew (find-uuid task) %tasks :test 'equal))
 
-(define-method remove-task block (task)
+(define-method remove-task xblock (task)
   (destroy-maybe task)
   (setf %tasks (delete task %tasks :test 'equal)))
  
-(define-method run block ()) ;; stub for with-turtle
+(define-method run xblock ()) ;; stub for with-turtle
 
-(define-method run-tasks block ()
+(define-method run-tasks xblock ()
   ;; don't run tasks on objects that got deleted during UPDATE
   (when %quadtree-node
     (dolist (task %tasks)
       (unless (running task)
 	(remove-task self task)))))
 
-(define-method update block ()
+(define-method update xblock ()
   "Update the simulation one step forward in time."
   (mapc #'update %inputs))
    
 ;;; Block movement
 
-(define-method save-location block ()
+(define-method save-location xblock ()
   (setf %last-x %x
 	%last-y %y
 	%last-z %z))
 
-(define-method clear-saved-location block ()
+(define-method clear-saved-location xblock ()
   (setf %last-x nil
 	%last-y nil
 	%last-z nil))
 
-(define-method restore-location block ()
+(define-method restore-location xblock ()
   ;; is there a location to restore? 
   (when %last-x
     (quadtree-delete-maybe self)
@@ -832,10 +823,10 @@ See `keys.lisp' for the full table of key and modifier symbols.
 	  %z %last-z)
     (quadtree-insert-maybe self)))
 
-(define-method set-location block (x y)
+(define-method set-location xblock (x y)
   (setf %x x %y y))
 
-(define-method move-to block (x y &optional z)
+(define-method move-to xblock (x y &optional z)
   "Move this block to a new (X Y) location."
   (when %quadtree-node (save-location self))
   (quadtree-delete-maybe self)
@@ -851,16 +842,16 @@ See `keys.lisp' for the full table of key and modifier symbols.
 ;;   (move-to self x y)
 ;;   (setf %z (cfloat z)))
 
-(define-method raise block (distance)
+(define-method raise xblock (distance)
   (incf %z distance))
 
-(define-method lower block (distance)
+(define-method lower xblock (distance)
   (decf %z distance))
   
-(define-method move-to-depth block (depth)
+(define-method move-to-depth xblock (depth)
   (setf %z (cfloat depth)))
 
-(define-method move-toward block 
+(define-method move-toward xblock 
     ((direction symbol :default :up) (steps number :initform 1))
     "Move this block STEPS steps in the direction given by KEYWORD.
 The KEYWORD must be one of:
@@ -879,11 +870,11 @@ The KEYWORD must be one of:
 (defun heading-degrees (radians)
   (* radians (cfloat (/ 180 pi))))
 
-(define-method (turn-left :category :motion) block ((degrees number :default 90))
+(define-method (turn-left :category :motion) xblock ((degrees number :default 90))
   "Turn this object's heading to the left DEGREES degrees."
   (decf %heading (radian-angle degrees)))
 
-(define-method (turn-right :category :motion) block ((degrees number :default 90))
+(define-method (turn-right :category :motion) xblock ((degrees number :default 90))
   "Turn this object's heading to the right DEGREES degrees."
   (incf %heading (radian-angle degrees)))
 
@@ -891,43 +882,43 @@ The KEYWORD must be one of:
   (values (+ x (* distance (cos heading)))
 	  (+ y (* distance (sin heading)))))
 
-(define-method step-toward-heading block (heading &optional (distance 1))
+(define-method step-toward-heading xblock (heading &optional (distance 1))
   "Return as values the X,Y coordinate of the point DISTANCE units
 away from this object, in the angle HEADING."
   (multiple-value-bind (x y) (center-point self)
     (step-coordinates x y heading distance)))
 
-(define-method move block ((heading number :default 0.0)
+(define-method move xblock ((heading number :default 0.0)
 			   (distance number :default 1))
   "Move this object DISTANCE units toward the angle HEADING."
   (multiple-value-bind (x0 y0) (step-coordinates %x %y heading distance)
     (move-to self x0 y0)))
 
-(define-method forward block ((distance number :default 1))
+(define-method forward xblock ((distance number :default 1))
   "Move this object DISTANCE units toward its current heading."
   (move self %heading distance))
 
-(define-method backward block ((distance number :default 1))
+(define-method backward xblock ((distance number :default 1))
   "Move this object DISTANCE units away from its current heading."
   (move self (- (* 2 pi) %heading) distance))
 
-(define-method heading-to-thing2 block (thing)
+(define-method heading-to-thing2 xblock (thing)
   "Compute the heading angle from this object to the other object THING."
   (multiple-value-bind (x1 y1) (center-point thing)
     (multiple-value-bind (x0 y0) (center-point self)
       (find-heading x0 y0 x1 y1))))
 
-(define-method heading-to-thing block (thing)
+(define-method heading-to-thing xblock (thing)
   (multiple-value-bind (x0 y0) (center-point thing)
     (find-heading %x %y x0 y0)))
 
-(define-method heading-to-cursor block ()
+(define-method heading-to-cursor xblock ()
   "Compute the heading angle from this object to the cursor."
   (heading-to-thing self (get-cursor *buffer*)))
 
 ;;; Show methods in Emacs Glass
 
-(define-method show-method block (method)
+(define-method show-method xblock (method)
   (let ((sym (definition method (find-object self))))
     (assert (symbolp sym))
     (let ((name (string-upcase 
@@ -936,7 +927,7 @@ away from this object, in the angle HEADING."
 			 (symbol-name sym)))))
       (eval-in-emacs `(glass-show-definition ,name)))))
 
-(define-method show-definition block ()
+(define-method show-definition xblock ()
   (let ((name 
 	  (concatenate 'string 
 		       (package-name *package*)
@@ -948,25 +939,25 @@ away from this object, in the angle HEADING."
 
 ;;; Visibility
 
-(define-method show block ()
+(define-method show xblock ()
   (setf %visible t))
 
-(define-method hide block ()
+(define-method hide xblock ()
   (setf %visible nil))
 
-(define-method toggle-visibility block ()
+(define-method toggle-visibility xblock ()
   (if %visible
       (hide self)
       (show self)))
 
-(define-method visiblep block ()
+(define-method visiblep xblock ()
   %visible)
 
-;;; Menus and programming-blocks
+;;; Menus and programming-xblocks
 
-;; See also library.lisp for the Message blocks.
+;; See also library.lisp for the Message xblocks.
 
-(define-method make-method-menu-item block (method target)
+(define-method make-method-menu-item xblock (method target)
   (assert (and target (keywordp method)))
   (let ((method-string (pretty-string method)))
     (list :label method-string
@@ -974,7 +965,7 @@ away from this object, in the angle HEADING."
 	  :target target
 	  :action (new 'task method target))))
 
-(define-method context-menu block ()
+(define-method context-menu xblock ()
   (let ((methods nil)
 	(pointer self))
     ;; gather methods
@@ -1002,15 +993,15 @@ away from this object, in the angle HEADING."
 	     :locked t)
        :target (find-uuid self)))))
 
-(define-method make-reference block ()
+(define-method make-reference xblock ()
   (new 'reference self))
 
-;;; Evaluation and recompilation: compiling block diagrams into equivalent sexps
+;;; Evaluation and recompilation: compiling xblock diagrams into equivalent sexps
 
-(define-method evaluate-inputs block ()
-  "Evaluate all blocks in %INPUTS from left-to-right. Results are
+(define-method evaluate-inputs xblock ()
+  "Evaluate all xblocks in %INPUTS from left-to-right. Results are
 placed in corresponding positions of %RESULTS. Override this method
-when defining new blocks if you don't want to evaluate all the inputs
+when defining new xblocks if you don't want to evaluate all the inputs
 all the time."
   (with-fields (inputs results) self
     (let ((arity (length inputs)))
@@ -1022,16 +1013,16 @@ all the time."
 		(evaluate (nth n inputs))))))
     results))
 
-(define-method evaluate block () self)
+(define-method evaluate xblock () self)
 
-(define-method evaluate-here block ())
+(define-method evaluate-here xblock ())
 
-(define-method recompile block ()
+(define-method recompile xblock ()
   (mapcar #'recompile %inputs))
 
 (defun count-tree (tree)
-  "Return the number of blocks enclosed in this block, including the
-current block. Used for taking a count of all the nodes in a tree."
+  "Return the number of xblocks enclosed in this xblock, including the
+current xblock. Used for taking a count of all the nodes in a tree."
   (cond ((null tree) 0)
 	;; without inputs, just count the root
 	((null (field-value :inputs tree)) 1)
@@ -1040,7 +1031,7 @@ current block. Used for taking a count of all the nodes in a tree."
 		  (mapcar #'count-tree 
 			  (field-value :inputs tree))))))
 
-;;; Drawing blocks with complete theme customization
+;;; Drawing xblocks with complete theme customization
 
 ;; Very important for individuals with colorblindness.
 
@@ -1048,12 +1039,12 @@ current block. Used for taking a count of all the nodes in a tree."
   "The default background color of the XELF user interface.")
 
 (defparameter *socket-color* "gray80"
-  "The default background color of block sockets.")
+  "The default background color of xblock sockets.")
 
-(defparameter *block-font* "sans-11"
-  "Name of the font used in drawing block labels and input data.")
+(defparameter *xblock-font* "sans-11"
+  "Name of the font used in drawing xblock labels and input data.")
 
-(defparameter *block-bold* "sans-bold-11")
+(defparameter *xblock-bold* "sans-bold-11")
 
 (defmacro with-font (font &rest body)
   "Evaluate forms in BODY with FONT as the current font."
@@ -1084,7 +1075,7 @@ arguments. Uses `*dash*' which may be configured by `*style*'."
 This is used to override layout-determined baselines in cases where
 you want to align a group of text items across layouts.")
 
-(defparameter *block-colors*
+(defparameter *xblock-colors*
   '(:motion "cornflower blue"
     :system "gray40"
     :expression "gray60"
@@ -1106,9 +1097,9 @@ you want to align a group of text items across layouts.")
     :fields "MediumOrchid"
     :operators "OliveDrab3"
     :sensing "DeepSkyBlue3")
-  "X11 color names of the different block categories.")
+  "X11 color names of the different xblock categories.")
 
-(defparameter *block-highlight-colors*
+(defparameter *xblock-highlight-colors*
   '(:motion "sky blue"
     :system "gray60"
     :hover "dark orange"
@@ -1130,9 +1121,9 @@ you want to align a group of text items across layouts.")
     :variables "maroon2"
     :operators "OliveDrab1"
     :sensing "DeepSkyBlue2")
-  "X11 color names of highlights on the different block categories.")
+  "X11 color names of highlights on the different xblock categories.")
 
-(defparameter *block-shadow-colors*
+(defparameter *xblock-shadow-colors*
   '(:motion "royal blue"
     :system "gray42"
     :event "gray70"
@@ -1154,9 +1145,9 @@ you want to align a group of text items across layouts.")
     :variables "maroon4"
     :operators "OliveDrab4"
     :sensing "steel blue")
-  "X11 color names of shadows on the different block categories.")
+  "X11 color names of shadows on the different xblock categories.")
 
-(defparameter *block-foreground-colors*
+(defparameter *xblock-foreground-colors*
   '(:motion "white"
     :system "white"
     :button "yellow"
@@ -1178,18 +1169,18 @@ you want to align a group of text items across layouts.")
     :variables "white"
     :operators "white"
     :sensing "white")
-  "X11 color names of the text used for different block categories.")
+  "X11 color names of the text used for different xblock categories.")
 
-(define-method find-color block (&optional (part :background))
-  "Return the X11 color name of this block's PART as a string.
+(define-method find-color xblock (&optional (part :background))
+  "Return the X11 color name of this xblock's PART as a string.
 If PART is provided, return the color for the corresponding
 part (:BACKGROUND, :SHADOW, :FOREGROUND, or :HIGHLIGHT) of this
-category of block."
+category of xblock."
   (let* ((colors (ecase part
-		  (:background *block-colors*)
-		  (:highlight *block-highlight-colors*)
-		  (:shadow *block-shadow-colors*)
-		  (:foreground *block-foreground-colors*)))
+		  (:background *xblock-colors*)
+		  (:highlight *xblock-highlight-colors*)
+		  (:shadow *xblock-shadow-colors*)
+		  (:foreground *xblock-foreground-colors*)))
 	 (category (if (keywordp %category) %category :system))
 	 (result (getf colors category)))
       (prog1 result 
@@ -1201,7 +1192,7 @@ category of block."
 
 (defparameter *styles* '((:rounded :dash 3)
 			 (:flat :dash 1))
-  "Graphical style parameters for block drawing.")
+  "Graphical style parameters for xblock drawing.")
 
 (defvar *style* :flat "The default style setting; must be a keyword.")
 
@@ -1214,11 +1205,11 @@ category of block."
 		      *dash*)))
      ,@body)))
 
-(defmacro with-block-drawing (&body body)
+(defmacro with-xblock-drawing (&body body)
   "Run BODY forms with drawing primitives.
 The primitives are CIRCLE, DISC, LINE, BOX, and TEXT. These are used
 in subsequent functions as the basis of drawing nested diagrams of
-blocks."
+xblocks."
   `(let* ((foreground (find-color self :foreground))
 	  (background (find-color self :background))
 	  (highlight (find-color self :highlight))
@@ -1246,16 +1237,16 @@ blocks."
 			     :font *font*)))
        ,@body)))
 
-(define-method draw-rounded-patch block (x0 y0 x1 y1
+(define-method draw-rounded-patch xblock (x0 y0 x1 y1
 				    &key depressed dark socket color)
-  "Draw a standard XELF block notation patch with rounded corners.
+  "Draw a standard XELF xblock notation patch with rounded corners.
 Places the top left corner at (X0 Y0), bottom right at (X1 Y1). If
 DEPRESSED is non-nil, draw an indentation; otherwise a raised area is
 drawn. If DARK is non-nil, paint a darker region. If SOCKET is
-non-nil, cut a hole in the block where the background shows
+non-nil, cut a hole in the xblock where the background shows
 through. If COLOR is non-nil, its value will override all other
 arguments."
-  (with-block-drawing 
+  (with-xblock-drawing 
     (let ((bevel (or color (if depressed shadow highlight)))
 	  (chisel (or color (if depressed highlight shadow)))
 	  (fill (or color (if socket
@@ -1309,13 +1300,13 @@ arguments."
       (disc (- x1 radius 1) (+ y0 radius 1) fill) ;; top x1
       )))
 
-(define-method draw-flat-patch block (x0 y0 x1 y1
+(define-method draw-flat-patch xblock (x0 y0 x1 y1
 				    &key depressed dark socket color)
   "Draw a square-cornered Xelf notation patch. 
 Places its top left corner at (X0 Y0), bottom right at (X1 Y1). If
 DEPRESSED is non-nil, draw an indentation; otherwise a raised area is
 drawn. If DARK is non-nil, paint a darker region."
-  (with-block-drawing 
+  (with-xblock-drawing 
     (let ((bevel (or color (if depressed shadow highlight)))
 	  (chisel (or color (if depressed highlight shadow)))
 	  (fill (or color (if socket
@@ -1343,7 +1334,7 @@ drawn. If DARK is non-nil, paint a darker region."
 	    chisel)
       )))
 
-(define-method draw-patch block (x0 y0 x1 y1 
+(define-method draw-patch xblock (x0 y0 x1 y1 
 				    &key depressed dark socket color (style *style*))
   "Draw a Xelf notation patch in the current `*style*'.
 Places its top left corner at (X0 Y0), bottom right at (X1 Y1)."
@@ -1366,7 +1357,7 @@ Places its top left corner at (X0 Y0), bottom right at (X1 Y1)."
 (defparameter *cursor-blink-color* "cyan"
   "The color of the cursor when blinking.")
 
-(define-method update-cursor-clock block ()
+(define-method update-cursor-clock xblock ()
   "Update blink timers for any blinking cursor indicators.
 This method allows for configuring blinking items on a system-wide
 scale. See also "
@@ -1375,7 +1366,7 @@ scale. See also "
     (when (> (- 0 *cursor-blink-time*) cursor-clock)
       (setf cursor-clock *cursor-blink-time*))))
 
-(define-method draw-cursor-glyph block
+(define-method draw-cursor-glyph xblock
     (&optional (x 0) (y 0) (width 2) (height (font-height *font*))
 	       &key color blink)
   "Draw a graphical cursor at point X, Y of dimensions WIDTH x HEIGHT."
@@ -1388,7 +1379,7 @@ scale. See also "
 		*cursor-color*)))
       (draw-box x y width height :color (or color color2)))))
 
-(define-method draw-cursor block (&rest args)
+(define-method draw-cursor xblock (&rest args)
   "Draw the cursor. By default, it is not drawn at all."
   (declare (ignore args))
   nil)
@@ -1397,10 +1388,10 @@ scale. See also "
 
 (defparameter *highlight-foreground-color* "gray10")
 
-(define-method draw-focus block ()
+(define-method draw-focus xblock ()
   "Draw any additional indications of input focus." nil)
 
-(define-method draw-highlight block () 
+(define-method draw-highlight xblock () 
   "Draw any additional indications of mouseover." nil)
 
 (defparameter *hover-color* "cyan" 
@@ -1409,15 +1400,15 @@ dropped.")
 
 (defparameter *hover-alpha* 0.8)
 
-(define-method draw-cursor block ()
+(define-method draw-cursor xblock ()
   (draw-indicator :drop
 		  (- %x (dash 1)) 
 		  (- %y (dash 1))
 		  :color "white"
-		  :scale *handle-scale*
+		  :scale 1.0
 		  :background "gray70"))
 
-(define-method draw-hover block ()
+(define-method draw-hover xblock ()
   "Draw something to indicate that this object can recieve a drop.
 See buffers.lisp for more on the implementation of drag-and-drop."
   (with-fields (x y width height inputs) self
@@ -1426,19 +1417,19 @@ See buffers.lisp for more on the implementation of drag-and-drop."
     (dolist (input inputs)
       (draw input))))
 
-(define-method resize-to-image block ()
+(define-method resize-to-image xblock ()
   (with-fields (image height width) self
     (when image
       (setf width (image-width image)))
       (setf height (image-height image))))
 
-(define-method scale block (x-factor &optional y-factor)
+(define-method scale xblock (x-factor &optional y-factor)
   (let ((image (find-resource-object %image)))
     (resize self 
 	    (* (sdl:width image) x-factor)
 	    (* (sdl:height image) (or y-factor x-factor)))))
 
-(define-method change-image block 
+(define-method change-image xblock 
     ((image string :default nil))
   "Change this sprite's currently displayed image to IMAGE, resizing
 the object if necessary."
@@ -1446,9 +1437,9 @@ the object if necessary."
     (setf %image image)
     (resize-to-image self)))
   
-(define-method draw block ()
-  "Draw this block as a sprite. By default only %IMAGE is drawn.
-The following block fields will control sprite drawing:
+(define-method draw xblock ()
+  "Draw this xblock as a sprite. By default only %IMAGE is drawn.
+The following xblock fields will control sprite drawing:
 
    %OPACITY  Number in the range 0.0-1.0 with 0.0 being fully transparent
              and 1.0 being fully opaque.
@@ -1463,7 +1454,7 @@ The following block fields will control sprite drawing:
 	(progn (draw-patch self x y (+ x width) (+ y height))
 	       (mapc #'draw %inputs)))))
 
-(define-method draw-border block (&optional (color *selection-color*))
+(define-method draw-border xblock (&optional (color *selection-color*))
   (let ((dash *dash*))
     (with-fields (x y height width) self
       (draw-patch self (- x dash) (- y dash)
@@ -1471,18 +1462,18 @@ The following block fields will control sprite drawing:
 		   (+ y height dash)
 		   :color color))))
 
-(define-method draw-background block (&key color)
+(define-method draw-background xblock (&key color)
   (with-fields (x y width height) self
     (draw-patch self x y (+ x width) (+ y height) :color color)))
 
-(define-method draw-ghost block ()
+(define-method draw-ghost xblock ()
   (with-fields (x y width height) self
     (draw-patch self x y (+ x width) (+ y height)
 		 :depressed t :socket t)))
 
-(define-method header-height block () 0)
+(define-method header-height xblock () 0)
 
-(define-method header-width block () %width)
+(define-method header-width xblock () %width)
 
 (defparameter *socket-width* (* 18 *dash*))
 
@@ -1499,34 +1490,34 @@ The following block fields will control sprite drawing:
       *socket-width*
       (font-text-width (print-expression expression) font)))
 
-(define-method set-label-string block (label)
+(define-method set-label-string xblock (label)
   (assert (stringp label))
   (setf %label label))
 
-(define-method label-string block ()
+(define-method label-string xblock ()
   %label)
 
-(define-method label-width block ()
+(define-method label-width xblock ()
   (if (or (null %label) (string= "" %label))
       0
       (+ (dash 2)
-	 (font-text-width %label *block-font*))))
+	 (font-text-width %label *xblock-font*))))
     
-(define-method draw-label-string block (string &optional color)
-  (with-block-drawing 
+(define-method draw-label-string xblock (string &optional color)
+  (with-xblock-drawing 
     (with-field-values (x y) self
       (let* ((dash *dash*)
 	     (left (+ x (* 2 dash)))
 	     (y0 (+ y dash 1)))
 	(text left y0 string color)))))
 
-(define-method draw-label block (expression)
+(define-method draw-label xblock (expression)
   (draw-label-string self (print-expression expression)))
 
 ;;; Layout management
 
-(define-method center block ()
-  "Automatically center the block on the screen."
+(define-method center xblock ()
+  "Automatically center the xblock on the screen."
   (with-fields (window-x window-y) *buffer*
     (with-fields (x y width height) self
       (let ((center-x (+ window-x (/ *gl-screen-width* 2)))
@@ -1534,23 +1525,23 @@ The following block fields will control sprite drawing:
 	(setf x (+ (- center-x (/ width 2))))
 	(setf y (+ (- center-y (/ width 2))))))))
 
-(define-method center-as-dialog block ()
+(define-method center-as-dialog xblock ()
   (center self)
   (align-to-pixels self))
 
-(define-method pin block ()
-  "Prevent dragging and moving of this block."
+(define-method pin xblock ()
+  "Prevent dragging and moving of this xblock."
   (setf %pinned t))
 
-(define-method unpin block () 
-  "Allow dragging and moving of this block."
+(define-method unpin xblock () 
+  "Allow dragging and moving of this xblock."
   (setf %pinned nil))
 
-(define-method pinnedp block ()
-  "When non-nil, dragging and moving are disallowed for this block."
+(define-method pinnedp xblock ()
+  "When non-nil, dragging and moving are disallowed for this xblock."
   %pinned)
 
-(define-method resize block 
+(define-method resize xblock 
     ((width number :default 100)
      (height number :default 100))
   "Change this object's size to WIDTH by HEIGHT units."
@@ -1561,7 +1552,7 @@ The following block fields will control sprite drawing:
   nil)
 ;;  (invalidate-layout self))
 
-(define-method layout block () 
+(define-method layout xblock () 
   (when %image 
     (resize-to-image self)))
 
@@ -1582,7 +1573,7 @@ The following block fields will control sprite drawing:
 
 ;;; Sound 
 
-(define-method play-sound block 
+(define-method play-sound xblock 
     ((name string :default "chirp"))
     "Play the sample named NAME."
   (when (or (null (cursor))
@@ -1593,9 +1584,9 @@ The following block fields will control sprite drawing:
 
 ;;; Collision detection and UI hit testing
 
-(define-method hit block (mouse-x mouse-y)
-  "Return this block (or child input block) if the coordinates MOUSE-X
-and MOUSE-Y identify a point inside the block (or input block.)"
+(define-method hit xblock (mouse-x mouse-y)
+  "Return this xblock (or child input xblock) if the coordinates MOUSE-X
+and MOUSE-Y identify a point inside the xblock (or input xblock.)"
   (with-fields (x y width height inputs) self
     (when (within-extents mouse-x mouse-y x y
 			  (+ x width) (+ y height))
@@ -1604,7 +1595,7 @@ and MOUSE-Y identify a point inside the block (or input block.)"
 	(or (some #'try inputs) 
 	    self)))))
 
-(define-method bounding-box block ()
+(define-method bounding-box xblock ()
   "Return this object's bounding box as multiple values.
 The order is (TOP LEFT RIGHT BOTTOM)."
   (when (null %height)
@@ -1616,7 +1607,7 @@ The order is (TOP LEFT RIGHT BOTTOM)."
      (cfloat (+ x width))
      (cfloat (+ y height)))))
 
-(define-method center-point block ()
+(define-method center-point xblock ()
   "Return this object's center point as multiple values X and Y."
   (multiple-value-bind (top left right bottom)
       (the (values float float float float) (bounding-box self))
@@ -1625,41 +1616,41 @@ The order is (TOP LEFT RIGHT BOTTOM)."
       (values (* half (+ left right))
 	      (* half (+ top bottom))))))
 
-(define-method at block ()
+(define-method at xblock ()
   (values %x %y))
 
-(define-method left-of block (&optional other)
+(define-method left-of xblock (&optional other)
   (let ((width (field-value :width (or other self))))
     (values (- %x width) %y)))
   
-(define-method right-of block ()
+(define-method right-of xblock ()
   (values (+ %x %width) %y))
 
-(define-method above block (&optional other)
+(define-method above xblock (&optional other)
   (let ((height (field-value :height (or other self))))
     (values (- %x %width) %y)))
   
-(define-method below block ()
+(define-method below xblock ()
   (values %x (+ %y %height)))
 
-(define-method left-of-center block (&optional other)
+(define-method left-of-center xblock (&optional other)
   (multiple-value-bind (x y) (left-of self other)
     (values x (+ y (/ %height 2)))))
 
-(define-method right-of-center block ()
+(define-method right-of-center xblock ()
   (multiple-value-bind (x y) (left-of-center self)
     (values (+ x %width) y)))
 
-(define-method above-center block (&optional other)
+(define-method above-center xblock (&optional other)
   (multiple-value-bind (x y) (above self other)
     (values (+ x (/ %width 2)) y)))
 
-(define-method below-center block ()
+(define-method below-center xblock ()
   (multiple-value-bind (x y) 
       (above-center self)
     (values x (+ y %height))))
 
-(define-method collide block (object)
+(define-method collide xblock (object)
   (declare (ignore object))
   "Respond to a collision detected with OBJECT. The default implementation does nothing."
   nil)
@@ -1676,10 +1667,10 @@ The order is (TOP LEFT RIGHT BOTTOM)."
 	;; is left to right of other right?
 	(<= (+ o-left o-width) x))))
 
-(define-method touching-point block (x y)
+(define-method touching-point xblock (x y)
   (within-extents x y %x %y (+ %x %width) (+ %y %height)))
 
-(define-method colliding-with-rectangle block (o-top o-left o-width o-height)
+(define-method colliding-with-rectangle xblock (o-top o-left o-width o-height)
   ;; you must pass arguments in Y X order since this is TOP then LEFT
   (with-field-values (x y width height) self
     (point-in-rectangle-p (cfloat x) (cfloat y) (cfloat width) (cfloat height) 
@@ -1691,116 +1682,116 @@ The order is (TOP LEFT RIGHT BOTTOM)."
     (point-in-rectangle-p (cfloat x) (cfloat y) (cfloat width) (cfloat height)
 			  top left (- right left) (- bottom top))))
 
-;; (define-method contained-in-bounding-box block (bounding-box)
+;; (define-method contained-in-bounding-box xblock (bounding-box)
 ;;   (bounding-box-contains bounding-box (multiple-value-list (bounding-box self))))
 
 (defun colliding-with (self thing)
-  "Return non-nil if this block collides with THING."
+  "Return non-nil if this xblock collides with THING."
   (multiple-value-bind (top left right bottom) 
       (bounding-box thing)
     (colliding-with-bounding-box self top left right bottom)))
 
-(define-method direction-to-thing block (thing)
+(define-method direction-to-thing xblock (thing)
   "Return a direction keyword approximating the direction to THING."
   (with-fields (x y) thing
     (direction-to %x %y x y)))
 
-(define-method direction-to-cursor block ()
+(define-method direction-to-cursor xblock ()
   "Return the directional keyword naming the general direction to the cursor."
   (direction-to-thing self (get-cursor *buffer*)))
 
-(define-method heading-to-thing block (thing)
+(define-method heading-to-thing xblock (thing)
   "Return a heading (in radians) to THING."
   (with-fields (x y) thing
     (find-heading %x %y x y)))
 
-(define-method heading-to-cursor block ()
-  "The heading (in radians) to the cursor from this block."
+(define-method heading-to-cursor xblock ()
+  "The heading (in radians) to the cursor from this xblock."
   (heading-to-thing self (get-cursor *buffer*)))
 
-(define-method aim-at-thing block (thing)
+(define-method aim-at-thing xblock (thing)
   "Aim the current heading at the object THING."
   (setf %heading (heading-to-thing self thing)))
 
-(define-method aim block (heading)
+(define-method aim xblock (heading)
   "Aim this object toward the angle HEADING."
   (assert (numberp heading))
   (setf %heading heading))
 
-(define-method distance-between block (thing)
+(define-method distance-between xblock (thing)
   "Return the straight-line distance between here and THING.
 Note that the center-points of the objects are used for comparison."
   (multiple-value-bind (x0 y0) (center-point self)
     (multiple-value-bind (x y) (center-point thing)
       (distance x0 y0 x y))))
 
-(define-method distance-to-cursor block ()
+(define-method distance-to-cursor xblock ()
   "Return the straight-line distance to the cursor."
   (distance-between self (get-cursor *buffer*)))
 
-(define-method queue-layout block ()
+(define-method queue-layout xblock ()
   (setf %needs-layout t))
 
-(define-method invalidate-layout block ()
+(define-method invalidate-layout xblock ()
   (let ((buffer (current-buffer)))
     (when (and buffer (has-method :queue-layout buffer))
       (queue-layout buffer))))
 
-(define-method bring-to-front block (block)
+(define-method bring-to-front xblock (xblock)
   (with-fields (inputs) self
-    (assert (contains self block))
-    (delete-input self block)
-    (append-input self block)))
+    (assert (contains self xblock))
+    (delete-input self xblock)
+    (append-input self xblock)))
 
-;; (define-method update block ()
+;; (define-method update xblock ()
 ;;   (with-buffer self 
 ;;     (dolist (each %inputs)
 ;;       (update each))
 ;;     (update-layout self)))
 
-(define-method update-layout block (&optional force)
+(define-method update-layout xblock (&optional force)
   (with-fields (inputs needs-layout) self
     (when (or force needs-layout)
       (dolist (each inputs)
 	(layout each))
       (setf needs-layout nil))))
 
-(define-method append-input block (block)
-  (assert (xelfp block))
+(define-method append-input xblock (xblock)
+  (assert (xelfp xblock))
   (with-fields (inputs) self
-    (assert (not (contains self block)))
-    (set-parent block self)
-    (setf inputs (nconc inputs (list block)))))
+    (assert (not (contains self xblock)))
+    (set-parent xblock self)
+    (setf inputs (nconc inputs (list xblock)))))
 
-(define-method prepend-input block (block)
-  (assert (xelfp block))
+(define-method prepend-input xblock (xblock)
+  (assert (xelfp xblock))
   (with-fields (inputs) self
-    (assert (not (contains self block)))
-    (set-parent block self)
-    (push block inputs)))
+    (assert (not (contains self xblock)))
+    (set-parent xblock self)
+    (push xblock inputs)))
 
-(define-method add-block block (block &optional x y prepend)
-  (assert (xelfp block))
-  ;(assert (not (contains self block)))
+(define-method add-xblock xblock (xblock &optional x y prepend)
+  (assert (xelfp xblock))
+  ;(assert (not (contains self xblock)))
   (if prepend 
-      (prepend-input self block)
-      (append-input self block))
+      (prepend-input self xblock)
+      (append-input self xblock))
   (when (and (integerp x)
 	     (integerp y))
-    (move-to block x y))
-  (save-location block)
+    (move-to xblock x y))
+  (save-location xblock)
   (invalidate-layout self))
 
-(define-method delete-block block (block)
-  (assert (xelfp block))
-  (assert (contains self block))
-  (delete-input self block))
+(define-method delete-xblock xblock (xblock)
+  (assert (xelfp xblock))
+  (assert (contains self xblock))
+  (delete-input self xblock))
 
 ;;; Buttons for next/previous
 
 (defvar *next-tab* nil)
 
-(define-method tab block (&optional backward)
+(define-method tab xblock (&optional backward)
   (if *next-tab*
       (focus-on (current-buffer) *next-tab*)
       (let ((index (position-within-parent self)))
@@ -1812,7 +1803,7 @@ Note that the center-points of the objects are used for comparison."
 				(length inputs))
 			   inputs)))))))
 
-(define-method backtab block ()
+(define-method backtab xblock ()
   (tab self :backward))
 
 ;;; Simple scheduling mechanisms
@@ -1916,11 +1907,11 @@ Note that the center-points of the objects are used for comparison."
 (defmacro later-while (test-expression &body subtask-expressions)
   `(later ,(make-task-form t test-expression subtask-expressions)))
 
-(define-method after-drop-hook block ())
+(define-method after-drop-hook xblock ())
 
 ;; ;;; A generic color swatch
 
-;; (define-block color 
+;; (define-xblock color 
 ;;   :pinned nil
 ;;   :methods '(:set-color)
 ;;   :name "gray50"

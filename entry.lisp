@@ -569,25 +569,25 @@
      (value :initform ',value)
      ,@specs))
 
-(defentry integer integerp 0)
-(defentry number numberp 0)
-(defentry non-negative-number (number 0 *) 0)
-(defentry float floatp 0.0)
-(defentry symbol symbolp nil 
+(defentry %integer integerp 0)
+(defentry %number numberp 0)
+(defentry %non-negative-number (number 0 *) 0)
+(defentry %float floatp 0.0)
+(defentry %symbol symbolp nil 
   (category :initform :data))
-(defentry positive-integer (integer 1 *) 1)
-(defentry non-negative-integer (integer 0 *) 0)
-(defentry string stringp "")
-(defentry expression t nil 
+(defentry %positive-integer (integer 1 *) 1)
+(defentry %non-negative-integer (integer 0 *) 0)
+(defentry %string stringp "")
+(defentry %expression t nil 
   (category :initform :expression))
 
-(define-method evaluate expression ()
+(define-method evaluate %expression ()
   (eval (get-value self)))
 
 ;;; Keyword
 
-(defentry keyword keywordp :default)
-(define-method update keyword ()
+(defentry %keyword keywordp :default)
+(define-method update %keyword ()
   (setf %line (command-argument-string %value)))
 
 ;;; String display
