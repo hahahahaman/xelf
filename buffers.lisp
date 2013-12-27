@@ -72,7 +72,7 @@
 		    ;; ((:e :alt) :edit-word)
 		    ;; ((:x :control) :exec)
 		    ;; ((:d :control) :delete-word)
-		    ;; ((:c :control) :copy-word)
+		    ;; ((:c :control) :copy-selected-word)
 		    ;; ((:x :alt) :command-prompt)
 		    ;; ((:g :control) :cancel)
 		    ;; ((:c :alt) :clear-stack)
@@ -251,13 +251,14 @@
   (or (null %objects)
       (zerop (hash-table-count %objects))))
 
-(define-method initialize buffer (&optional name)
-  (initialize%super self)
-  (setf %objects (make-hash-table :test 'equal))
-  (when name
-    (let ((buffer-name (make-buffer-name name)))
-      (setf %buffer-name buffer-name)
-      (add-buffer buffer-name self))))
+(define-method initialize buffer (&rest args)
+  (let ((name (first args)))
+    (call-next-method self)
+    (setf %objects (make-hash-table :test 'equal))
+    (when name
+      (let ((buffer-name (make-buffer-name name)))
+	(setf %buffer-name buffer-name)
+	(add-buffer buffer-name self)))))
 
 (define-method rename buffer (name)
   (assert (stringp name))
@@ -1373,7 +1374,7 @@ block found, or nil if none is found."
 
 (define-method delete-word buffer ())
 
-(define-method copy-word buffer ()
+(define-method copy-selected-word buffer ()
   (when %point 
     (add-at-pointer self (duplicate-phrase %point))))
 

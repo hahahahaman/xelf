@@ -71,7 +71,7 @@
 	(phrase-root self)
 	(or (some #'try %inputs) self))))
 
-(define-method accept phrase (input &optional prepend)
+(define-method accept phrase (input)
   (assert (xelfp input))
   (when (not %frozen)
     (prog1 t
@@ -86,9 +86,9 @@
 		(unplug-from-parent input))
 	      (set-parent input self)
 	      (setf inputs 
-		    (if prepend
-			(append (list input) inputs)
-			(append inputs (list input)))))
+		    ;; (if prepend
+		    ;; 	(append (list input) inputs)
+			(append inputs (list input))))
 	    ;; no inputs yet. make a single-element inputs list
 	    (progn
 	      (setf inputs (list input))

@@ -47,15 +47,15 @@
 
 (define-block handle target indicator color foreground-color)
 
-(define-method initialize handle (&optional target)
+(define-method initialize handle (&rest args)
   (initialize%super self)
-  (setf %target target))
+  (setf %target (first args)))
 
 (define-method can-pick handle () t)
 (define-method pick handle () self)
 (define-method can-escape handle () nil)
 (define-method layout handle ())
-(define-method toggle-halo handle () nil) ;; don't let halos have halos
+(define-method toggle-halo handle (&optional force) nil) ;; don't let halos have halos
 
 (define-method highlight handle ()
   (setf %color *handle-highlight-background-color*)
@@ -239,13 +239,14 @@
 
 (define-block halo target)
 
-(define-method initialize halo (target)
-  (assert (xelfp target))
-  (setf %target target)
-  (apply #'initialize%super self
-	 (mapcar #'(lambda (handle)
+(define-method initialize halo (&rest args)
+  (let ((target (first args)))
+    (assert (xelfp target))
+    (setf %target target)
+    (apply #'call-next-method 
+	   (mapcar #'(lambda (handle)
 		       (clone (make-prototype-id handle) target))
-		 *halo-handles*)))
+		   *halo-handles*))))
 
 (defun halo-minimum-height () (* 5 *handle-scale* (indicator-size)))
 (defun halo-minimum-width () (* 5 *handle-scale* (indicator-size)))

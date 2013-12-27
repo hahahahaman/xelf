@@ -234,7 +234,7 @@ streams as a basis.
 	 (label :initform ,(pretty-string name))
 	 (input-names :initform ',input-names)
 	 ,@fields)
-       (define-method initialize ,name ()
+       (define-method initialize ,name (&rest args)
 	 (apply #'initialize%super self %inputs) 
 	 (setf %inputs (list ,@(remove-if #'keywordp inputs)))
 	 (update-parent-links self)
@@ -536,7 +536,7 @@ function."
   (unless (joystick-event-p event)
     (with-fields (events) self
       (destructuring-bind (key . unicode) (first event)
-	(when (or (xblock%handle-event self event)
+	(when (or (handle-event self event)
 		  ;; treat non-alt-control Unicode characters as self-inserting
 		  (when 
 		      (and (not (eq :return key))
@@ -699,10 +699,10 @@ See `keys.lisp' for the full table of key and modifier symbols.
 (define-method handle-point-motion xblock (x y)
   (declare (ignore x y)))
 
-(define-method press xblock (x y button)
+(define-method press xblock (x y &optional button)
   (declare (ignore x y button)))
 
-(define-method release xblock (x y button)
+(define-method release xblock (x y &optional button)
   (declare (ignore x y button)))
 
 (define-method can-pick xblock () 
@@ -1379,9 +1379,8 @@ scale. See also "
 		*cursor-color*)))
       (draw-box x y width height :color (or color color2)))))
 
-(define-method draw-cursor xblock (&rest args)
+(define-method draw-cursor xblock (&rest ignore)
   "Draw the cursor. By default, it is not drawn at all."
-  (declare (ignore args))
   nil)
 
 (defparameter *highlight-background-color* "gray90")
@@ -1400,7 +1399,7 @@ dropped.")
 
 (defparameter *hover-alpha* 0.8)
 
-(define-method draw-cursor xblock ()
+(define-method draw-cursor xblock (&rest args)
   (draw-indicator :drop
 		  (- %x (dash 1)) 
 		  (- %y (dash 1))
@@ -1477,7 +1476,7 @@ The following xblock fields will control sprite drawing:
 
 (defparameter *socket-width* (* 18 *dash*))
 
-(defun print-expression (expression)
+(define-method fancy-format-expression xblock (expression)
   (assert (not (object-p expression)))
   (string-downcase
    (typecase expression
@@ -1488,7 +1487,7 @@ The following xblock fields will control sprite drawing:
 (defun expression-width (expression &optional (font *font*))
   (if (xelf:object-p expression)
       *socket-width*
-      (font-text-width (print-expression expression) font)))
+      (font-text-width (fancy-format-expression expression) font)))
 
 (define-method set-label-string xblock (label)
   (assert (stringp label))
@@ -1512,7 +1511,7 @@ The following xblock fields will control sprite drawing:
 	(text left y0 string color)))))
 
 (define-method draw-label xblock (expression)
-  (draw-label-string self (print-expression expression)))
+  (draw-label-string self (fancy-format-expression expression)))
 
 ;;; Layout management
 
@@ -1541,9 +1540,7 @@ The following xblock fields will control sprite drawing:
   "When non-nil, dragging and moving are disallowed for this xblock."
   %pinned)
 
-(define-method resize xblock 
-    ((width number :default 100)
-     (height number :default 100))
+(define-method resize xblock (width height)
   "Change this object's size to WIDTH by HEIGHT units."
   (quadtree-delete-maybe self)
   (setf %height height)
@@ -1810,22 +1807,23 @@ Note that the center-points of the objects are used for comparison."
 
 (define-block task method target arguments clock subtasks finished)
 
-(define-method initialize task 
+(define-method initialize task (&rest args)
+  (destructuring-bind 
     (method target 
-	    &key arguments clock subtasks)
-  (assert method)
-  (assert (listp arguments))
-  (assert (xelfp target))
-  (assert (or (eq t clock)
-	      (null clock)
-	      (and (integerp clock)
-		   (plusp clock))))
-  (initialize%super self)
-  (setf %method (make-keyword method)
-	%arguments arguments
-	%target (find-uuid target)
-	%subtasks subtasks
-	%clock clock))
+	    &key arguments clock subtasks) args
+    (assert method)
+    (assert (listp arguments))
+    (assert (xelfp target))
+    (assert (or (eq t clock)
+		(null clock)
+		(and (integerp clock)
+		     (plusp clock))))
+    (initialize%super self)
+    (setf %method (make-keyword method)
+	  %arguments arguments
+	  %target (find-uuid target)
+	  %subtasks subtasks
+	  %clock clock)))
 
 (define-method finish task ()
   (setf %finished t))

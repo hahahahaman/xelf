@@ -52,7 +52,7 @@
   (assert (stringp string))
   (new 'expression :line string))
 
-(define-method initialize sidebar ()
+(define-method initialize sidebar (&rest ignore)
   (with-fields (inputs) self
     (setf inputs (mapcar #'make-menu-expression *sidebar-menu*))
     (dolist (input inputs)
@@ -115,7 +115,7 @@
 (define-method can-pick sidebar () t)
 (define-method draw-hover sidebar ())
 
-(define-method pick sidebar (&optional nodup)
+(define-method pick sidebar ()
   (let ((x (window-pointer-x))
 	(y (window-pointer-y))
 	(candidates (subseq %inputs %row (+ %row %displayed-rows))))
@@ -124,7 +124,7 @@
       (let* ((pos (position-if #'try candidates))
 	     (phrase (when pos (nth pos candidates))))
 	(when phrase
-	  (if nodup phrase
+	  (if nil phrase
 	      (let ((phrase2 (duplicate-safely phrase)))
 		(prog1 phrase2
 		  (move-to phrase2 (%x phrase) (%y phrase))))))))))

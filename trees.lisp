@@ -186,8 +186,7 @@
 (define-method draw-hover tree ()
   nil)
 
-(define-method draw-border tree ()
-  nil)
+(define-method draw-border tree (&optional (color *selection-color*)))
 
 (define-method draw-highlight tree () 
   nil)
@@ -232,7 +231,7 @@
    (dolist (each %inputs)
      (draw each))))
 
-(define-method draw tree (&optional highlight)
+(define-method draw tree ()
   (with-fields (visible draw-frame expanded label inputs) self
     (when visible
       (with-style %style
@@ -283,7 +282,7 @@
 	     "XELF:MENU"))
 
 ;; menu items should not accept any dragged widgets.
-(define-method accept menu (&rest args) nil)
+(define-method accept menu (arg) nil)
 
 (define-method can-pick menu ()
   ;; allow making code blocks from menu items

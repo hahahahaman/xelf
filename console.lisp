@@ -2714,9 +2714,9 @@ of the music."
   (sdl:quit-sdl)
   (setf *gl-window-open-p* nil))
 
-(defun reset ()
-  (shut-down)
-  (start-up))
+;; (defun reset ()
+;;   (shut-down)
+;;   (start-up))
 
 (defmacro with-session (&body body)
   `(progn 

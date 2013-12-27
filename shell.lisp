@@ -24,12 +24,13 @@
 
 (define-block messenger :category :terminal :messages nil)
 
-(define-method initialize messenger (&optional messages)
-  (cond 
-    ((stringp messages)
-     (setf %messages (list messages)))
-    ((consp messages)
-     (setf %messages messages))))
+(define-method initialize messenger (&rest args)
+  (let ((messages (first args)))
+    (cond 
+      ((stringp messages)
+       (setf %messages (list messages)))
+      ((consp messages)
+       (setf %messages messages)))))
 
 (define-method add-message messenger (message-string)
   (assert (stringp message-string))

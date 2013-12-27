@@ -988,18 +988,16 @@ was invoked."
 	     (error (format nil "Cannot define method ~A for nonexistent prototype ~A"
 			    ',method-name ',prototype-id)))
 	   ;; define the method's Lisp function
-	   (defun ,defun-symbol (self ,@method-lambda-list)
+	   (defmethod ,method-symbol ((self ,prototype-id) ,@method-lambda-list)
 	     ,@(if documentation (list documentation))
 	     ,declaration2
-	     ;; easily invoke next method without repeating name
-	     (macrolet ((next-method (&rest args)
-			  (append (list ',next-defun-symbol) args)))
 	       ;; paste transformed method code
 	       ,(if declaration 
 		    (rest body2)
-		    body2)))
+		    body2))
+	   (export ',method-symbol)
 	   ;; store the method's function in the prototype's field
-	   (setf (field-value ,field-name prototype) ',defun-symbol)
+	   (setf (field-value ,field-name prototype) ',defun-symbol))))))
 	   ;; add this method to the method dictionary
 	   ;; (add-method-to-dictionary 
 	   ;;  ',prototype-id
@@ -1007,25 +1005,25 @@ was invoked."
 	   ;;  ',arglist
 	   ;;  ',options)
 	   ;; define the other functions
-	   (export ',defun-symbol)
-	   (let ((,name ,(make-keyword method-name)))
-	     (unless (fboundp ',method-symbol)
-	       ;; tag the symbol as a method
-	       (setf (get ',method-symbol 'is-method) t)
-	       (defun ,method-symbol (self &rest args)
-		 ,@(when documentation (list documentation))
-		 (apply #'send ,name self args))
-	       (export ',method-symbol)
-	       ;; and for message queueing
-	       ;; (defun ,queue-defun-symbol (self &rest args)
+	   ;; (export ',defun-symbol)
+	   ;; (let ((,name ,(make-keyword method-name)))
+	   ;;   (unless (fboundp ',method-symbol)
+	       ;; ;; tag the symbol as a method
+	       ;; (setf (get ',method-symbol 'is-method) t)
+	       ;; (defun ,method-symbol (self &rest args)
 	       ;; 	 ,@(when documentation (list documentation))
-	       ;; 	 (apply #'send-queue ,name self args))
-	       (export ',queue-defun-symbol)
-	       ;; and for next-method calls.
-	       (defun ,next-defun-symbol (self &rest args)
-		 ,@(when documentation (list documentation))
-		 (apply #'send-super ,name self args))
-	       (export ',next-defun-symbol))))))))
+	       ;; 	 (apply #'send ,name self args))
+	       ;; (export ',method-symbol)
+	       ;; ;; and for message queueing
+	       ;; ;; (defun ,queue-defun-symbol (self &rest args)
+	       ;; ;; 	 ,@(when documentation (list documentation))
+	       ;; ;; 	 (apply #'send-queue ,name self args))
+	       ;; (export ',queue-defun-symbol)
+	       ;; ;; and for next-method calls.
+	       ;; (defun ,next-defun-symbol (self &rest args)
+	       ;; 	 ,@(when documentation (list documentation))
+	       ;; 	 (apply #'send-super ,name self args))
+	       ;; (export ',next-defun-symbol))))))))
   
 ;;; Defining prototypes
   
@@ -1536,13 +1534,13 @@ objects after reconstruction, wherever present."
   ;; 	    (1+ (search "{" string))
   ;; 	    (search "}" string))))
 
-(defun print-blx (foo stream)
-  (let ((object (find-object foo)))
-    (format stream "#<% ~A ~A>" 
-	    (get-some-name object)
-	    (object-address-string object))))
+;; (defun print-blx (foo stream)
+;;   (let ((object (find-object foo)))
+;;     (format stream "#<% ~A ~A>" 
+;; 	    (get-some-name object)
+;; 	    (object-address-string object))))
 
-(defmethod print-object ((foo xelf:xelf-object) stream)
-  (print-blx foo stream))
+;; (defmethod print-object ((foo xelf:xelf-object) stream)
+;;   (print-blx foo stream))
 
 ;;; prototypes.lisp ends here

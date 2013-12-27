@@ -62,7 +62,7 @@
   (history :documentation "A queue of strings containing the command history.")
   (history-position :initform 0))
 
-(define-method accept prompt (&rest args)
+(define-method accept prompt (arg)
   nil)
 
 (define-method exit prompt ()
@@ -74,8 +74,8 @@
 (define-method say prompt (&rest args)
   (apply #'message args))
 
-(define-method initialize prompt ()
-  (block%initialize self)
+(define-method initialize prompt (&rest args)
+  (call-next-method self)
   (when (not (has-local-value :history self))
     (setf %history (make-queue :max *default-prompt-history-size* :count 0)))
   (install-text-keybindings self))
@@ -125,7 +125,7 @@
     (condition (c)
       (format *error-output* "~S" c))))
 
-(define-method print-expression prompt (sexp)
+(define-method fancy-format-expression prompt (sexp)
   (format nil "~S" sexp))
 
 (define-method enter prompt (&optional no-clear)
@@ -184,32 +184,32 @@
 (define-method beginning-of-line prompt ()
   (setf %point 0))
 
-(define-method draw-cursor prompt 
-    (&key (x-offset 0) (y-offset 0)
-	  color blink)
-  (with-fields (x y width height clock point parent background
-		  prompt-string line) self
-    (draw-cursor-glyph self
-     ;;
-     (+ x (or x-offset 0)
-	(font-text-width (if (<= point (length line))
-			     (subseq line 0 point)
-			     " ")
-			 %font)
-	(if x-offset 0 (font-text-width prompt-string %font)))
-     ;;
-     (+ y (or y-offset 0) *default-prompt-margin*)
-     *default-cursor-width*
-     (* (font-height %font) 0.8)
-     :color color
-     :blink blink)))
+(define-method draw-cursor prompt (&rest args)
+  (destructuring-bind (&key (x-offset 0) (y-offset 0)
+			    color blink) args
+    (with-fields (x y width height clock point parent background
+		    prompt-string line) self
+      (draw-cursor-glyph self
+			 ;;
+			 (+ x (or x-offset 0)
+			    (font-text-width (if (<= point (length line))
+						 (subseq line 0 point)
+						 " ")
+					     %font)
+			    (if x-offset 0 (font-text-width prompt-string %font)))
+			 ;;
+			 (+ y (or y-offset 0) *default-prompt-margin*)
+			 *default-cursor-width*
+			 (* (font-height %font) 0.8)
+			 :color color
+			 :blink blink))))
 
 (define-method label-width prompt () 
   (font-text-width %prompt-string %font))
 
 (define-method label-string prompt () %prompt-string)
 
-(define-method draw-border prompt ())
+(define-method draw-border prompt (&optional (color *selection-color*)))
 
 (define-method draw-hover prompt ())
 
@@ -299,12 +299,12 @@
 	;; redraw content (but not label)
 	(draw self :nolabel)))))
 
-(define-method draw prompt (&optional nolabel)
+(define-method draw prompt ()
   (with-fields (x y width height point parent background
 		  line prompt-string) self
     (when (null line) (setf line ""))
     (let ((strings-y *default-prompt-margin*))
-      (unless nolabel
+      (unless nil
 	;; draw prompt string
 	(assert (stringp %text-color))
 	(draw-string prompt-string
@@ -343,7 +343,7 @@
   (label-color :initform *default-entry-label-color*)
   type-specifier value)
 
-(define-method tab entry ()
+(define-method tab entry (&optional backward)
   (setf %old-line nil)
   (enter self)
   (next-entry (shell)))
@@ -445,9 +445,9 @@
     (setf %read-only (if %read-only nil t))))
 
 (define-method label-width entry () 0)
-(define-method draw-label entry ())
+(define-method draw-label entry (expression))
 		 
-(define-method draw entry (&optional nolabel)
+(define-method draw entry ()
   (with-fields (x y options read-only 
 		  text-color width background
 		  parent height line) self
@@ -455,7 +455,7 @@
 	  (line-width (font-text-width line %font)))
       ;; draw the label string 
       (let ((*text-baseline* (+ y (dash 1))))
-	(unless nolabel 
+	(unless nil 
 	  (when (plusp (length %label))
 	    (draw-label self))
 	  ;; draw shaded area for input
@@ -507,13 +507,13 @@
 		   type-specifier))
       (when parent (child-updated parent self)))))
  
-(define-method enter entry ()
+(define-method enter entry (&optional no-clear)
   (unless %read-only
     (enter%super self :no-clear)))
 
-(define-method execute entry ()
-  (enter self)
-  (evaluate-output (shell)))
+;; (define-method execute entry ()
+;;   (enter self)
+;;   (evaluate-output (shell)))
 
 (define-method evaluate-here entry ()
   (finish-editing self)
