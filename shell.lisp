@@ -24,7 +24,7 @@
 
 (defblock messenger :category :terminal :messages nil)
 
-(defmethod initialize :after ((self messenger) &key messages)
+(defmethod initialize ((self messenger) &key messages)
   (with-local-fields 
     (typecase messages
       ((stringp messages)

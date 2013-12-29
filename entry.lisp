@@ -74,7 +74,7 @@
 (define-method say prompt (&rest args)
   (apply #'message args))
 
-(defmethod initialize :after ((self prompt) &key)
+(defmethod initialize ((self prompt) &key)
   (with-local-fields
       (call-next-method self)
     (when (not (has-local-value :history self))
@@ -391,7 +391,7 @@
   (declare (ignore x y))
   (if %pinned (phrase-root self) self))
 
-(defmethod initialize :after ((self entry)
+(defmethod initialize ((self entry)
     &key value type-specifier options label label-color parent locked line font
     read-only)
   (with-local-fields 

@@ -53,7 +53,7 @@
 
 (define-method children tree () %inputs)
 
-(defmethod initialize :after ((self tree)
+(defmethod initialize ((self tree)
 			       &key action target top-level inputs pinned locked method category
 				    expanded (draw-frame t) label)
   (with-local-fields

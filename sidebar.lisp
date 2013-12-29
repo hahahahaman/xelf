@@ -52,7 +52,7 @@
   (assert (stringp string))
   (new 'expression :line string))
 
-(defmethod initialize :after ((self sidebar) &key)
+(defmethod initialize ((self sidebar) &key)
   (with-fields (inputs) self
     (setf inputs (mapcar #'make-menu-expression *sidebar-menu*))
     (dolist (input inputs)

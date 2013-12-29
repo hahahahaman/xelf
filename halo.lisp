@@ -47,7 +47,7 @@
 
 (defblock handle target indicator color foreground-color)
 
-(defmethod initialize :after ((self handle) &key target)
+(defmethod initialize ((self handle) &key target)
   (with-local-fields (setf %target target)))
 
 (define-method can-pick handle () t)
@@ -238,7 +238,7 @@
 
 (defblock halo target)
 
-(defmethod initialize :after ((self halo) &key target)
+(defmethod initialize ((self halo) &key target)
   (with-local-fields
       (assert (xelfp target))
     (setf %target target)

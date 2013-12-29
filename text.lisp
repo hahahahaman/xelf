@@ -144,7 +144,7 @@
 		   (newline self))))
   ;; (setf %buffer (reverse *message-history*)))
 
-(defmethod initialize :after ((self text) &key text)
+(defmethod initialize ((self text) &key text)
   (with-local-fields
     (call-next-method self)
     (let ((buffer (when (consp args) (first args))))

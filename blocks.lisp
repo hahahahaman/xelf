@@ -244,7 +244,7 @@ streams as a basis.
 	 (label :initform ,(pretty-string name))
 	 (input-names :initform ',input-names)
 	 ,@fields)
-       (defmethod initialize :after ((self ,name) &key inputs)
+       (defmethod initialize ((self ,name) &key inputs)
 	 (with-local-fields
 	     (setf %inputs (list ,@(remove-if #'keywordp inputs)))
 	   (update-parent-links self)
@@ -562,7 +562,7 @@ whenever the event (EVENT-NAME . MODIFIERS) is received."
     (bind-event-to-task block 
 			   key
 			   mods
-			   (new 'task method-name block))))
+			   (new 'task :method method-name :target block))))
 
 (define-method bind-event nil (event binding)
   "Bind the EVENT to invoke the action specified in BINDING.
@@ -1824,7 +1824,6 @@ Note that the center-points of the objects are used for comparison."
 		(null clock)
 		(and (integerp clock)
 		     (plusp clock))))
-    (call-next-method self)
     (setf (field-value :method self) (make-keyword method)
 	  (field-value :arguments self) arguments
 	  (field-value :target self) (find-uuid target)
@@ -1836,7 +1835,7 @@ Note that the center-points of the objects are used for comparison."
 
 (define-method evaluate task ()
   (when (xelfp %target)
-    (apply #'send %method %target %arguments)))
+    (apply #'send %method (find-object %target) %arguments)))
 
 (define-method running task ()
   (with-fields (method target arguments clock finished) self
@@ -1889,8 +1888,8 @@ Note that the center-points of the objects are used for comparison."
 	     (,delay-sym ,delay))
 	 (add-task ,target-sym
 		   (new 'task 
-			,(make-keyword method)
-			,target-sym
+			:method ,(make-keyword method)
+			:target ,target-sym
 			:subtasks (list ,@(make-tasks delay-sym subexpressions))
 			:arguments (list ,@arguments)
 			:clock ,delay))))))

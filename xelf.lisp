@@ -1,5 +1,5 @@
 ;;; xelf.lisp --- an emacs-inspired Lisp game engine
-               
+
 ;; Copyright (C) 2006-2013 David O'Toole
 
 ;; Author: David O'Toole <dto@blocky.io>

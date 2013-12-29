@@ -254,7 +254,7 @@
     (or (null objects)
 	(zerop (hash-table-count objects)))))
 
-(defmethod initialize :after ((self buffer) &key name)
+(defmethod initialize ((self buffer) &key name)
   (setf (field-value :objects self) (make-hash-table :test 'equal))
   (when name
     (let ((buffer-name (make-buffer-name name)))
@@ -1070,7 +1070,7 @@ slowdown. See also quadtree.lisp")
 	      (prog1 t 
 		(when thing 
 		  (with-quadtree quadtree
-		    (handle-event thing event)
+		    (handle-event (find-object thing) event)
 		    (clear-deleted-program-objects self)
 		    ))))))))
 
