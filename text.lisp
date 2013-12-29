@@ -147,7 +147,7 @@
 (defmethod initialize ((self text) &key text)
   (with-local-fields
     (call-next-method self)
-    (let ((buffer (when (consp args) (first args))))
+    (let ((buffer (when (consp text) (first text))))
       (when (null buffer)
 	(setf %buffer (list " ")))
       (when (stringp buffer)
@@ -156,9 +156,9 @@
 	(setf %buffer buffer))
       (when (null (has-local-value :buffer self))
 	(setf %buffer (list "")))
-      (layout self)
-      (install-text-keybindings self)
-      (install-keybindings self *arrow-key-text-navigation-keybindings*))))
+      (layout self))))
+      ;; (install-text-keybindings self)
+      ;; (install-keybindings self *arrow-key-text-navigation-keybindings*))))
 
 (define-method forward-char text ()
   (with-fields (buffer point-row point-column) self

@@ -414,7 +414,7 @@ non-nil to indicate that the block was accepted, nil otherwise."
 	  (if (eq (find-object pointer)
 		  (find-object source))
 	      (return-from checking nil)
-	      (setf pointer (find-parent pointer))))))))
+	      (setf pointer (find-parent (find-object pointer)))))))))
 
 (define-method update-result-lists nil ()
   (let ((len (length %inputs)))
