@@ -1285,8 +1285,10 @@ block found, or nil if none is found."
 		    (when drag-parent
 		      (unplug-from-parent drag))
 		    (if %object-p
-			(progn (move-to drag drop-x drop-y)
-			       (after-drag-hook drag))
+			(unless (and hover 
+				     (accept (find-object hover) (find-object drag)))
+			  (move-to drag drop-x drop-y)
+			  (after-drag-hook drag))
 			(if (null hover)
 			    ;; don't drop the shell into the world
 			    (when (not (object-eq *shell* drag))

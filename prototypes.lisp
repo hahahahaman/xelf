@@ -36,7 +36,7 @@
 
 (defvar *ccl-copyright-notice*
 "-----------------------------------------------------------------
-This distribution of Blocky is compiled with Clozure Common Lisp.
+This distribution of Xelf is compiled with Clozure Common Lisp.
 Clozure CL is (C) 2009 by Clozure Associates, and is licensed under
 the terms of the Lisp Lesser General Public License (LLGPL). The LLGPL
 consists of a preamble together with the GNU Lesser General Public
@@ -49,7 +49,7 @@ at the Clozure Associates website: http://ccl.clozure.com/
 
 (defvar *sbcl-copyright-notice* 
 "-----------------------------------------------------------------
-This distribution of Blocky is compiled with Steel Bank Common Lisp (SBCL).
+This distribution of Xelf is compiled with Steel Bank Common Lisp (SBCL).
 Steel Bank Common Lisp (SBCL) is free software, and comes with
 absolutely no warranty. Please see the file named
 ./licenses/COPYING.SBCL.txt The PCL implementation is (C) 1985-1990
