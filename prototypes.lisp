@@ -488,6 +488,8 @@ extended argument list ARGLIST."
 
 (add-prototype (make-instance 'xelf-object :fields nil :super nil :name 'xelf-object :uuid (make-uuid))) 
 
+(defmethod initialize ((self xelf-object) &key))
+
 (defun object-p (x)
   (typep x 'xelf:xelf-object))
 
@@ -915,6 +917,9 @@ finding the next implementation after that."
 	   (mapcar #'make-input-accessor-macrolet-clause inputs))
        ,@body)))
 
+(defmacro with-local-fields (&body body)
+  (transform-method-body body))
+
 ;; (defun transform-field-reference (ref)
 ;;   "Change the symbol REF from %foo to (field-value :foo self)."
 ;;   (let ((name (symbol-name ref)))
@@ -1181,6 +1186,8 @@ OPTIONS is a property list of field options. Valid keys are:
 	 (when (fboundp 'call-next-method)
 	   (call-next-method))
 	 ,@field-initializer-body)
+       (defmethod initialize-instance :after ((self ,name) &key)
+	 (initialize-fields self))
        (let* ((uuid (make-uuid))
 	      (fields (compose-blank-fields ',descriptors))
 	      (prototype (make-instance ',name
@@ -1193,13 +1200,6 @@ OPTIONS is a property list of field options. Valid keys are:
 	 ;; (setf (fref fields :field-descriptors) ',descriptors)
 	 ;; (setf (fref fields :documentation) ,documentation)
 	 (initialize-method-cache prototype)
-	 ;; set the default initforms. note that you should not allocate
-	 ;; resources here.
-	 (initialize-fields prototype)
-	 ;; ;; the prototype's super may have an initialize method.
-	 ;; ;; if so, we need to initialize the present prototype.
-	 ;; (when (has-field :initialize prototype)
-	 ;; 	 (send :initialize prototype))
 	 ;; now add it to the dictionaries
 	 (add-prototype prototype)
 	 (add-object-to-database prototype)
@@ -1239,8 +1239,6 @@ evaluated, then any applicable initializer is triggered."
 				  :uuid uuid
 				  :fields fields)))
     (prog1 uuid
-      (initialize-method-cache new-object)
-      (initialize-fields new-object)
       (apply #'initialize new-object initargs)
       (add-object-to-database new-object))))
 

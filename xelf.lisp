@@ -1,4 +1,4 @@
-;;; xelf.lisp --- a visual dialect of Common Lisp inspired by Squeak
+;;; xelf.lisp --- an emacs-inspired Lisp game engine
                
 ;; Copyright (C) 2006-2013 David O'Toole
 
@@ -69,7 +69,7 @@ icon-resource icon-image *directions* *opposites* *pending-resources*
 with-project project-orthographically project-with-perspective
 open-viewport find-resource-property compose-blank-fields font-width
 font-height find-object *windows* edit create xelf
-transform-field-reference define-block *screen-height*
+transform-field-reference defblock *screen-height*
 formatted-line-width find-buffer *clipboard* formatted-line-height
 formatted-string-height formatted-string-width get-color create-image
 draw-image xelf edit define-prototype has-field *target* with-target
@@ -182,8 +182,8 @@ make-input-accessor-forms *persistent-variables-file-name* duplicate
 persistent-variables-file combine save-variables indicator-size
 draw-indicator load-variables *block-text-colors* defblock capture
 paste-from make-input-accessor-macrolet-clause heading-direction
-make-input-accessor-defun-forms input-reference-p input-block
+make-input-accessor-defun-forms input-reference-p input-block with-local-fields 
 *default-quadtree-depth* input-value *block-bold* *bold* *italic*
-xelf-object xelf-object-p object-p *block-italic* xblock
+xelf-object xelf-object-p object-p *block-italic* xblock after-drag-hook
 colliding-with-bounding-box define-block-macro heading-degrees))
 

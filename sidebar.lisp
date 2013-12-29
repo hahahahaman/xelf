@@ -26,7 +26,7 @@
 (defparameter *sidebar-spacing* 3)
 (defparameter *sidebar-scroll-speed* 3)
 
-(define-block sidebar
+(defblock sidebar
   (row :initform 0)
   (displayed-rows :initform 0))
 (defparameter *sidebar-menu* 
@@ -52,7 +52,7 @@
   (assert (stringp string))
   (new 'expression :line string))
 
-(define-method initialize sidebar (&rest ignore)
+(defmethod initialize :after ((self sidebar) &key)
   (with-fields (inputs) self
     (setf inputs (mapcar #'make-menu-expression *sidebar-menu*))
     (dolist (input inputs)

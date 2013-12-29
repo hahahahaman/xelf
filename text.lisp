@@ -30,7 +30,7 @@
 
 (defparameter *text-monospace* "sans-mono-bold-11")
 
-(define-block text
+(defblock text
   (methods :initform '(:page-up :page-down :center :resize-to-fit :view-messages))
   (font :initform *text-monospace*)
   (buffer :initform nil)
@@ -144,20 +144,21 @@
 		   (newline self))))
   ;; (setf %buffer (reverse *message-history*)))
 
-(define-method initialize text (&rest args)
-  (call-next-method self)
-  (let ((buffer (when (consp args) (first args))))
-    (when (null buffer)
-      (setf %buffer (list " ")))
-    (when (stringp buffer)
-      (setf %buffer (split-string-on-lines buffer)))
-    (when (and buffer (listp buffer) (every #'stringp buffer))
-      (setf %buffer buffer))
-    (when (null (has-local-value :buffer self))
-      (setf %buffer (list "")))
-    (layout self)
-    (install-text-keybindings self)
-    (install-keybindings self *arrow-key-text-navigation-keybindings*)))
+(defmethod initialize :after ((self text) &key text)
+  (with-local-fields
+    (call-next-method self)
+    (let ((buffer (when (consp args) (first args))))
+      (when (null buffer)
+	(setf %buffer (list " ")))
+      (when (stringp buffer)
+	(setf %buffer (split-string-on-lines buffer)))
+      (when (and buffer (listp buffer) (every #'stringp buffer))
+	(setf %buffer buffer))
+      (when (null (has-local-value :buffer self))
+	(setf %buffer (list "")))
+      (layout self)
+      (install-text-keybindings self)
+      (install-keybindings self *arrow-key-text-navigation-keybindings*))))
 
 (define-method forward-char text ()
   (with-fields (buffer point-row point-column) self

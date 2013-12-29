@@ -110,9 +110,11 @@
   (tasks :initform nil)
   (image :initform nil :documentation "Name of texture to be displayed, if any."))
 
+(defmethod initialize ((self xblock) &key))
+
 ;;; Defining blocks
 
-(defmacro define-block (spec &body args)
+(defmacro defblock (spec &body args)
   "Define a new block.
 The first argument SPEC is either a
 symbol naming the new block, or a list of the form
@@ -152,7 +154,7 @@ areas.")
   (find-object (apply #'clone class args)))
 
 (define-method create nil ()
-  (new self))
+  (new (find-super (find-object self))))
 
 (define-method forward-message nil (method args)
   (apply #'send method self args))
@@ -238,33 +240,32 @@ streams as a basis.
     `(progn 
        ;; define input accessor functions
        ,@(mapcar #'make-input-accessor-defun-forms input-names)
-       (define-block (,name :super ,super) 
+       (defblock (,name :super ,super) 
 	 (label :initform ,(pretty-string name))
 	 (input-names :initform ',input-names)
 	 ,@fields)
-       (define-method initialize ,name (&rest args)
-	 (apply #'initialize%super self %inputs) 
-	 (setf %inputs (list ,@(remove-if #'keywordp inputs)))
-	 (update-parent-links self)
-	 (mapc #'pin %inputs)
-	 ,@body)
+       (defmethod initialize :after ((self ,name) &key inputs)
+	 (with-local-fields
+	     (setf %inputs (list ,@(remove-if #'keywordp inputs)))
+	   (update-parent-links self)
+	   (mapc #'pin %inputs)
+	   ,@body))
        (define-method recompile ,name () `(evaluate self)))))
 
 ;;; Block lifecycle
 
-(define-method initialize nil (&rest blocks)
+(defmethod initialize-instance :after ((self xblock) &key)
   "Prepare an empty block, or if BLOCKS is non-empty, a block
 initialized with BLOCKS as inputs."
-  (setf %inputs 
-	(or blocks (default-inputs self)))
-  (update-parent-links self)
-  (update-result-lists self)
-  (bind-any-default-events self)
-  (register-uuid self)
-  ;; textures loaded here may be bogus; do this later
-  (when %image
-    (resize-to-image self))
-  (setf %x 0 %y 0))
+    (update-parent-links self)
+    (update-result-lists self)
+    (bind-any-default-events self)
+    (register-uuid self)
+    ;; textures loaded here may be bogus; do this later
+    (when (field-value :image self)
+      (resize-to-image self))
+    (setf (field-value :x self) 0
+	  (field-value :y self) 0))
 
 (defun destroy-maybe (x)
   (when (xelfp x) (destroy (find-object x))))
@@ -1812,12 +1813,10 @@ Note that the center-points of the objects are used for comparison."
 
 ;;; Simple scheduling mechanisms
 
-(define-block task method target arguments clock subtasks finished)
+(defblock task method target arguments clock subtasks finished)
 
-(define-method initialize task (&rest args)
-  (destructuring-bind 
-    (method target 
-	    &key arguments clock subtasks) args
+(defmethod initialize ((self task) 
+		       &key method target arguments clock subtasks)
     (assert method)
     (assert (listp arguments))
     (assert (xelfp target))
@@ -1826,11 +1825,11 @@ Note that the center-points of the objects are used for comparison."
 		(and (integerp clock)
 		     (plusp clock))))
     (call-next-method self)
-    (setf %method (make-keyword method)
-	  %arguments arguments
-	  %target (find-uuid target)
-	  %subtasks subtasks
-	  %clock clock)))
+    (setf (field-value :method self) (make-keyword method)
+	  (field-value :arguments self) arguments
+	  (field-value :target self) (find-uuid target)
+	  (field-value :subtasks self) subtasks
+	  (field-value :clock self) clock))
 
 (define-method finish task ()
   (setf %finished t))
@@ -1913,30 +1912,6 @@ Note that the center-points of the objects are used for comparison."
   `(later ,(make-task-form t test-expression subtask-expressions)))
 
 (define-method after-drop-hook nil ())
-
-;; ;;; A generic color swatch
-
-;; (define-xblock color 
-;;   :pinned nil
-;;   :methods '(:set-color)
-;;   :name "gray50"
-;;   :width (dash 20) :height (dash 20))
-
-;; (define-method set-color color
-;;     ((name string :default "gray50"))
-;;   (setf %name name))
-
-;; (define-method draw color ()
-;;   (with-fields (x y width height red green blue) self
-;;     (with-style :rounded
-;;       (draw-patch self x y (+ x width) (+ y height)
-;; 		  :color %name))))
-
-;; (define-method layout color ())
-
-;; (define-method initialize color (&optional (name "gray50"))
-;;   (initialize%super self)
-;;   (setf %name name))
 
 ;;; blocks.lisp ends here
  

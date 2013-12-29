@@ -22,7 +22,7 @@
 
 (defparameter *combine-buffers-destructively* t)
 
-(define-block buffer
+(defblock buffer
   (name :initform nil)
   (buffer-name :initform "*untitled-buffer*")
   (variables :initform nil 
@@ -176,7 +176,7 @@
   (uniquify-buffer-name (or name "*untitled*")))
 
 (defmacro define-buffer (name &body body)
-  `(define-block (,name :super buffer)
+  `(defblock (,name :super buffer)
      ,@body))
 
 (defmacro with-buffer (buffer &rest body)
@@ -205,13 +205,14 @@
   (clear-deleted-program-objects (current-buffer)))
 
 (defun select-all ()
-  (clear-halos (current-buffer))
-  (loop for thing being the hash-values in 
-	(%objects (current-buffer))
-	do (make-halo thing)))
+  (with-local-fields 
+    (clear-halos (current-buffer))
+    (loop for thing being the hash-values in 
+					  (%objects (current-buffer))
+	  do (make-halo thing))))
 
 (define-method get-objects buffer ()
-  (loop for object being the hash-values in %objects 
+  (loop for object being the hash-values in (field-value :objects self)
 	when (xelfp object) collect object))
 
 (defun z-sort (objects)
@@ -221,12 +222,13 @@
   (apply #'max (mapcar #'%z (get-objects self))))
 
 (define-method has-object buffer (thing)
-  (gethash (find-uuid thing) %objects))
+  (with-local-fields
+    (gethash (find-uuid thing) %objects)))
 
 (define-method region-objects buffer ()
   (when %region
     (destructuring-bind (x y width height) %region
-      (loop for thing being the hash-values of %objects
+      (loop for thing being the hash-values of (field-value :objects self)
 	    when (colliding-with-rectangle thing y x width height)
 	      collect thing))))
 
@@ -248,17 +250,16 @@
   (prog1 nil (mapc #'destroy (selection))))
 
 (define-method emptyp buffer ()
-  (or (null %objects)
-      (zerop (hash-table-count %objects))))
+  (with-fields (objects) self
+    (or (null objects)
+	(zerop (hash-table-count objects)))))
 
-(define-method initialize buffer (&rest args)
-  (let ((name (first args)))
-    (call-next-method self)
-    (setf %objects (make-hash-table :test 'equal))
-    (when name
-      (let ((buffer-name (make-buffer-name name)))
-	(setf %buffer-name buffer-name)
-	(add-buffer buffer-name self)))))
+(defmethod initialize :after ((self buffer) &key name)
+  (setf (field-value :objects self) (make-hash-table :test 'equal))
+  (when name
+    (let ((buffer-name (make-buffer-name name)))
+      (setf (field-value :buffer-name self) buffer-name)
+      (add-buffer buffer-name self))))
 
 (define-method rename buffer (name)
   (assert (stringp name))

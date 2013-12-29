@@ -42,7 +42,7 @@
 
 ;;; The prompt is the underlying implementation for our word widgets.
 
-(define-block prompt
+(defblock prompt
   (text-color :initform "gray20")
   (font :initform "sans-bold-11")
   (read-only :initform t)
@@ -74,11 +74,12 @@
 (define-method say prompt (&rest args)
   (apply #'message args))
 
-(define-method initialize prompt (&rest args)
-  (call-next-method self)
-  (when (not (has-local-value :history self))
-    (setf %history (make-queue :max *default-prompt-history-size* :count 0)))
-  (install-text-keybindings self))
+(defmethod initialize :after ((self prompt) &key)
+  (with-local-fields
+      (call-next-method self)
+    (when (not (has-local-value :history self))
+      (setf %history (make-queue :max *default-prompt-history-size* :count 0)))
+    (install-text-keybindings self)))
 
 (define-method handle-event prompt (event)
   (unless %read-only
@@ -332,7 +333,7 @@
 
 (defun wordp (x) (has-tag x :word))
 
-(define-block (entry :super prompt)
+(defblock (entry :super prompt)
   (old-line :initform nil) 
   (tags :initform '(:word))
   (category :initform :data)
@@ -390,31 +391,30 @@
   (declare (ignore x y))
   (if %pinned (phrase-root self) self))
 
-(define-method initialize entry 
-    (&key value type-specifier options label label-color parent locked line font
+(defmethod initialize :after ((self entry)
+    &key value type-specifier options label label-color parent locked line font
     read-only)
-  (initialize%super self)
-  ;(assert (and value type-specifier))
-  (when parent (setf %parent parent))
-  (setf %type-specifier type-specifier
-	%options options
-	%locked locked
-	%read-only read-only
-	%value value)
-  ;; fill in the input box with the value, unless LINE was provided
-  (if line
-      (progn
-	(setf %line (coerce line 'simple-string))
-	(setf %value (read-from-string line)))
-      (setf %line 
-	    (if (null value)
-		""
+  (with-local-fields 
+      (when parent (setf %parent parent))
+    (setf %type-specifier type-specifier
+	  %options options
+	  %locked locked
+	  %read-only read-only
+	  %value value)
+    ;; fill in the input box with the value, unless LINE was provided
+    (if line
+	(progn
+	  (setf %line (coerce line 'simple-string))
+	  (setf %value (read-from-string line)))
+	(setf %line 
+	      (if (null value)
+		  ""
 		  (format nil "~S" value))))
-  (setf %label 
-	(or label 
-	    (getf options :label)))
-  (when font (setf %font font))
-  (when label-color (setf %label-color label-color)))
+    (setf %label 
+	  (or label 
+	      (getf options :label)))
+    (when font (setf %font font))
+    (when label-color (setf %label-color label-color))))
 
 (define-method set-read-only entry (&optional (value t))
   (setf %read-only value))
@@ -564,7 +564,7 @@
 ;;; Easily defining new entry blocks
 
 (defmacro defentry (name type value &rest specs)
-  `(define-block (,name :super entry)
+  `(defblock (,name :super entry)
      (type-specifier :initform ',type)
      (value :initform ',value)
      ,@specs))

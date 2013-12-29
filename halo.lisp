@@ -45,11 +45,10 @@
     :cut (1 1/2)
     :bottom-right-triangle (1 1)))
 
-(define-block handle target indicator color foreground-color)
+(defblock handle target indicator color foreground-color)
 
-(define-method initialize handle (&rest args)
-  (initialize%super self)
-  (setf %target (first args)))
+(defmethod initialize :after ((self handle) &key target)
+  (with-local-fields (setf %target target)))
 
 (define-method can-pick handle () t)
 (define-method pick handle () self)
@@ -94,7 +93,7 @@
 			      fields)
   (assert (symbolp name))
   (assert (stringp color))
-  `(define-block (,name :super handle)
+  `(defblock (,name :super handle)
      (indicator :initform ,indicator)
      (color :initform ,color)
      (foreground-color :initform ,foreground-color)
@@ -237,11 +236,11 @@
 (defparameter *halo-handles* 
   '(evaluate drop move rotate resize pick-up cut copy destroy))
 
-(define-block halo target)
+(defblock halo target)
 
-(define-method initialize halo (&rest args)
-  (let ((target (first args)))
-    (assert (xelfp target))
+(defmethod initialize :after ((self halo) &key target)
+  (with-local-fields
+      (assert (xelfp target))
     (setf %target target)
     (apply #'call-next-method 
 	   (mapcar #'(lambda (handle)

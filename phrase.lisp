@@ -20,7 +20,7 @@
 
 (in-package :xelf)
 
-(define-block phrase
+(defblock phrase
   (spacing :initform 1)
   (dash :initform 2)
   (frozen :initform nil)
@@ -179,7 +179,7 @@
 ;;   (execute (recompile self)))
 
 (defmacro defphrase (name &rest body)
-  `(define-block (,name :super phrase) ,@body))
+  `(defblock (,name :super phrase) ,@body))
 
 ;;; From phrases to S-expressions, and back
 

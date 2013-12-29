@@ -35,7 +35,7 @@
 (defun depth-gray (depth)
   (percent-gray (+ *depth-gray-base* (* depth *depth-gray-slope*))))
 
-(define-block (tree :super phrase)
+(defblock (tree :super phrase)
   (category :initform :structure)
   (treep :initform t)
   (always-visible :initform nil)
@@ -53,26 +53,26 @@
 
 (define-method children tree () %inputs)
 
-(define-method initialize tree 
-    (&key action target top-level inputs pinned locked method category
-	  expanded (draw-frame t) label)
-  (initialize%super self)
-  (setf %action action
-	%pinned pinned
-	%draw-frame draw-frame
-	%expanded expanded
-	%category category
-	%locked locked
-	%target target
-	%method method
-	%top-level top-level
-	%label label)
-  (when inputs (setf %inputs inputs))
-  ;; become the parent
-  (when inputs
-    (dolist (each inputs)
-      (pin each)
-      (set-parent each self))))
+(defmethod initialize :after ((self tree)
+			       &key action target top-level inputs pinned locked method category
+				    expanded (draw-frame t) label)
+  (with-local-fields
+      (setf %action action
+	    %pinned pinned
+	    %draw-frame draw-frame
+	    %expanded expanded
+	    %category category
+	    %locked locked
+	    %target target
+	    %method method
+	    %top-level top-level
+	    %label label)
+    (when inputs (setf %inputs inputs))
+    ;; become the parent
+    (when inputs
+      (dolist (each inputs)
+	(pin each)
+	(set-parent each self)))))
 
 (define-method evaluate tree ()
   (deeper (mapcar #'evaluate %inputs)))
@@ -257,7 +257,7 @@
 
 ;;; Menus
 
-(define-block (menu :super tree)
+(defblock (menu :super tree)
   (action :initform nil)
   (always-visible :initform t)
   (style :initform :rounded)

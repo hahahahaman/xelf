@@ -22,11 +22,11 @@
 
 ;;; Message output widget
 
-(define-block messenger :category :terminal :messages nil)
+(defblock messenger :category :terminal :messages nil)
 
-(define-method initialize messenger (&rest args)
-  (let ((messages (first args)))
-    (cond 
+(defmethod initialize :after ((self messenger) &key messages)
+  (with-local-fields 
+    (typecase messages
       ((stringp messages)
        (setf %messages (list messages)))
       ((consp messages)
@@ -116,7 +116,7 @@
 
 ;;; Shell prompt
 
-(define-block (shell-prompt :super entry)
+(defblock (shell-prompt :super entry)
   (result :initform nil)
   (background :initform nil))
 

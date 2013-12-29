@@ -47,8 +47,7 @@
 							       (one-or-more (not (any space))))))
 					 2))
 		(add-to-list 'imenu-generic-expression 
-			     `("Blocks" ,(rx (sequence "(" (group "define-block")
-						       (zero-or-more "-macro")
+			     `("Blocks" ,(rx (sequence "(" (group "defblock")
 						       (one-or-more space)
 						       (zero-or-one "(")
 						       (group (one-or-more (or "-" (any word))))))
