@@ -333,7 +333,7 @@
 
 (defun wordp (x) (has-tag x :word))
 
-(defblock (entry :super prompt)
+(defblock (entry prompt)
   (old-line :initform nil) 
   (tags :initform '(:word))
   (category :initform :data)
@@ -564,7 +564,7 @@
 ;;; Easily defining new entry blocks
 
 (defmacro defentry (name type value &rest specs)
-  `(defblock (,name :super entry)
+  `(defblock (,name entry)
      (type-specifier :initform ',type)
      (value :initform ',value)
      ,@specs))

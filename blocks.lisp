@@ -132,7 +132,7 @@ either a symbol naming the field, or a list of the form (SYMBOL
 	(super0 'xelf:xblock))
     (etypecase spec
       (symbol (setf name0 spec))
-      (list (destructuring-bind (name &key super) spec
+      (list (destructuring-bind (name super) spec
 	      (setf name0 name)
 	      (when super (setf super0 super)))))
     `(define-prototype ,name0 
@@ -243,7 +243,7 @@ streams as a basis.
     `(progn 
        ;; define input accessor functions
        ,@(mapcar #'make-input-accessor-defun-forms input-names)
-       (defblock (,name :super ,super) 
+       (defblock (,name ,super) 
 	 (label :initform ,(pretty-string name))
 	 (input-names :initform ',input-names)
 	 ,@fields)

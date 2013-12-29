@@ -201,7 +201,7 @@ interpreter."
 
 (defmacro define-block-word (name super fields)
   `(progn 
-     (defblock (,name :super ,super) ,@fields)
+     (defblock (,name ,super) ,@fields)
      (define-word ,name () (pushf (find-object ',name)))))
 
 (defun define-method-word (method definition)

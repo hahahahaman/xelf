@@ -179,7 +179,7 @@
 ;;   (execute (recompile self)))
 
 (defmacro defphrase (name &rest body)
-  `(defblock (,name :super phrase) ,@body))
+  `(defblock (,name phrase) ,@body))
 
 ;;; From phrases to S-expressions, and back
 

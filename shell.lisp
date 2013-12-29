@@ -116,7 +116,7 @@
 
 ;;; Shell prompt
 
-(defblock (shell-prompt :super entry)
+(defblock (shell-prompt entry)
   (result :initform nil)
   (background :initform nil))
 

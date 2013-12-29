@@ -176,7 +176,7 @@
   (uniquify-buffer-name (or name "*untitled*")))
 
 (defmacro define-buffer (name &body body)
-  `(defblock (,name :super buffer)
+  `(defblock (,name buffer)
      ,@body))
 
 (defmacro with-buffer (buffer &rest body)
