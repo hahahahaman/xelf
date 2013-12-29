@@ -184,7 +184,7 @@
 ;;; From phrases to S-expressions, and back
 
 (defun make-sentence (contents) 
-  (let ((phrase (apply #'new 'phrase contents)))
+  (let ((phrase (apply #'new 'phrase :inputs (list contents))))
     (prog1 phrase
       (update-parent-links phrase)
       (with-fields (orientation no-background dash spacing) phrase

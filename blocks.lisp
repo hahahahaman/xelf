@@ -110,6 +110,9 @@
   (tasks :initform nil)
   (image :initform nil :documentation "Name of texture to be displayed, if any."))
 
+(defmethod proper-name ((self xblock))
+  (pretty-string (class-name (class-of self))))
+
 (defmethod initialize ((self xblock) &key))
 
 ;;; Defining blocks
@@ -255,17 +258,19 @@ streams as a basis.
 ;;; Block lifecycle
 
 (defmethod initialize-instance :after ((self xblock) &key)
-  "Prepare an empty block, or if BLOCKS is non-empty, a block
-initialized with BLOCKS as inputs."
-    (update-parent-links self)
-    (update-result-lists self)
+  (with-fields (x y) self
     (bind-any-default-events self)
     (register-uuid self)
+    (setf x 0 y 0)))
     ;; textures loaded here may be bogus; do this later
-    (when (field-value :image self)
-      (resize-to-image self))
-    (setf (field-value :x self) 0
-	  (field-value :y self) 0))
+    ;; (when (field-value :image self)
+    ;;   (resize-to-image self))))
+
+(defmethod initialize ((self xblock) &key inputs)
+  (with-local-fields
+    (when inputs (setf %inputs inputs))
+    (update-parent-links (find-object self))
+    (update-result-lists (find-object self))))
 
 (defun destroy-maybe (x)
   (when (xelfp x) (destroy (find-object x))))
@@ -342,7 +347,7 @@ engine. The field `%tags' is a set of keyword symbols; if a symbol
 
 (define-method update-parent-links nil ()
   (dolist (each %inputs)
-    (set-parent each self)))
+    (set-parent (find-object each) self)))
 
 (define-method can-accept nil () nil)
 
@@ -459,8 +464,8 @@ non-nil to indicate that the block was accepted, nil otherwise."
     (prog1 t
       (with-fields (parent) self
 	(assert (not (null parent)))
-	(assert (contains parent self))
-	(unplug parent self)
+	(assert (contains (find-object parent) self))
+	(unplug (find-object parent) self)
 ;	(assert (not (contains parent self)))
 	(setf parent nil)))))
 
@@ -755,7 +760,7 @@ See `keys.lisp' for the full table of key and modifier symbols.
 
 (define-method make-halo nil ()
   (when (null %halo)
-    (setf %halo (new 'halo self))
+    (setf %halo (new 'halo :target self))
     (add-block (current-buffer) %halo)))
 
 (define-method destroy-halo nil ()
@@ -1425,10 +1430,11 @@ See buffers.lisp for more on the implementation of drag-and-drop."
       (draw input))))
 
 (define-method resize-to-image nil ()
-  (with-fields (image height width) self
-    (when image
-      (setf width (image-width image)))
-      (setf height (image-height image))))
+  (when *resources*
+    (with-fields (image height width) self
+      (when (find-resource-object image :noerror)
+	(setf width (image-width image))
+	(setf height (image-height image))))))
 
 (define-method scale nil (x-factor &optional y-factor)
   (let ((image (find-resource-object %image)))

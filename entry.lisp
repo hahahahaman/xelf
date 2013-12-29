@@ -262,10 +262,10 @@
 			 (:active *active-prompt-color*)
 			 (:inactive 
 			  (find-color 
-			   (or 
-			    (unless (is-a 'buffer %parent)
-			      %parent)
-			    self) :shadow)))))))
+			   (find-object (or 
+					 (unless (is-a 'buffer %parent)
+					   %parent)
+					 self)) :shadow)))))))
 
 (define-method draw-indicators prompt (state)
   (with-fields (x y options text-color width parent height line) self

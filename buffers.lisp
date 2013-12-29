@@ -496,8 +496,7 @@
       (unplug-from-parent object))))
 
 (define-method add-block buffer (object &optional x y prepend)
-  (remove-thing-maybe self object)
-  (add-block%super self object x y))
+  (remove-thing-maybe self object))
 
 (define-method drop-block buffer (object x y)
   (add-object self object)
@@ -909,7 +908,7 @@ slowdown. See also quadtree.lisp")
 	;; also draw any hover-over highlights 
 	;; on objects you might drop stuff onto
 	(when hover 
-	  (draw-hover hover))
+	  (draw-hover (find-object hover)))
 	(draw drag))
       (when (xelfp *shell*)
 	(draw *shell*))
@@ -918,7 +917,7 @@ slowdown. See also quadtree.lisp")
       ;; draw focus
       (when focused-block
 	(when (xelfp focused-block))
-	(draw-focus focused-block)))))
+	(draw-focus (find-object focused-block))))))
       ;; 
       ;; ;; (when *shell*
       ;; ;; 	(draw-focus (shell-prompt)))
@@ -1095,7 +1094,7 @@ block found, or nil if none is found."
     (with-quadtree %quadtree
       (labels ((try (b)
 		 (when b
-		   (hit b x y))))
+		   (hit (find-object b) x y))))
 	;; check shell and inputs first
 	(let* ((object-p nil)
 	       (result 
@@ -1129,18 +1128,18 @@ block found, or nil if none is found."
     (with-buffer self
       (let ((last-focus focused-block))
 	(if (null block)
-	    (progn (when last-focus (lose-focus last-focus))
+	    (progn (when last-focus (lose-focus (find-object last-focus)))
 		   (setf focused-block nil))
 	    ;; don't do this for same block
 	    (when (not (object-eq last-focus block))
 	      ;; there's going to be a new focused block. 
 	      ;; tell the current one it's no longer focused.
 	      (when (and clear-selection last-focus)
-		(lose-focus last-focus))
+		(lose-focus (find-object last-focus)))
 	      ;; now set up the new focus (possibly nil)
 	      (setf focused-block (when block 
 				    (find-uuid 
-				     (pick-focus block))))
+				     (pick-focus (find-object block)))))
 	      ;; clean up if object destroyed itself after losing focus
 	      (when (and last-focus (not (xelfp last-focus)))
 		(setf last-focus nil))
@@ -1148,11 +1147,11 @@ block found, or nil if none is found."
 	      (when (if last-focus 
 			(not (object-eq last-focus focused-block))
 			t)
-		(focus block))))))))
+		(focus (find-object block)))))))))
 
 (define-method begin-drag buffer (mouse-x mouse-y block)
   (with-fields (drag drag-origin inputs drag-start ghost drag-offset) self
-    (when (null ghost) (setf ghost (new 'block)))
+    (when (null ghost) (setf ghost (new 'xblock)))
     (with-buffer self
       (setf drag (as-drag block mouse-x mouse-y))
       (setf drag-origin (find-parent drag))
@@ -1184,14 +1183,14 @@ block found, or nil if none is found."
 	  (when (and focused-block click-start-block
 		     (> (distance x y x1 y1)
 			*minimum-drag-distance*)
-		     (can-pick click-start-block))
+		     (can-pick (find-object click-start-block)))
 	    (let ((drag 
 		    (if (and drag-button (= 3 drag-button))
 			;; right-drag means "grab whole thing"
-			(topmost click-start-block) 
-			(pick click-start-block))))
+			(topmost (find-object click-start-block) )
+			(pick (find-object click-start-block)))))
 	      (when drag 
-		(begin-drag self x y drag)
+		(begin-drag self x y (find-object drag))
 		;; clear click data
 		(setf click-start nil)
 		(setf click-start-block nil)))))))))
@@ -1311,7 +1310,7 @@ block found, or nil if none is found."
 	    ;; clicks that don't hit an object are sent to self
 	    ;; (if you hold shift, they are ALWAYS sent to buffer)
 	    (let ((it (if (holding-shift) self
-			  (or focused-block self))))
+			  (find-object (or focused-block self)))))
 	      (when (xelfp it)
 		(with-buffer self 
 		  (cond

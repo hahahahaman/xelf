@@ -1523,7 +1523,7 @@ objects after reconstruction, wherever present."
       (let ((object (find-object ob)))
 	(if (object-p object)
 	    (find-super-prototype-name object)
-	    "Unknown object"))))
+	    "Unknown"))))
 
 (defun object-address-string (ob)
   (subseq (find-uuid ob) 0 5))

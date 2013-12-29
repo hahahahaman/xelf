@@ -2058,15 +2058,16 @@ so that it can be fed to the console."
 loading. Unless NOERROR is non-nil, signal an error when NAME cannot
 be found."
   ;; can we find the resource straight off? 
-  (let ((res (gethash name *resources*)))
-    (if (resource-p res)
-	;; yes, return it and possibly load on demand
-	(prog1 res
-	  (when (null (resource-object res))
-	    (load-resource res)))
-	(if noerror
-	    nil
-	    (error "Cannot find resource ~S" name)))))
+  (when *resources*
+    (let ((res (gethash name *resources*)))
+      (if (resource-p res)
+	  ;; yes, return it and possibly load on demand
+	  (prog1 res
+	    (when (null (resource-object res))
+	      (load-resource res)))
+	  (if noerror
+	      nil
+	      (error "Cannot find resource ~S" name))))))
 
 (defun find-resource-object (name &optional noerror)
   "Obtain the resource object named NAME, or signal an error if not

@@ -53,7 +53,6 @@
 (define-method can-pick handle () t)
 (define-method pick handle () self)
 (define-method can-escape handle () nil)
-(define-method layout handle ())
 (define-method toggle-halo handle (&optional force) nil) ;; don't let halos have halos
 
 (define-method highlight handle ()
@@ -66,18 +65,19 @@
 (define-method scroll-tap handle (x y) 
   (tap self x y))
 
-(define-method layout handle ()
-  (with-fields (x y width height) %target
-    (destructuring-bind (px py) (getf *indicator-positions* %indicator)
-      (let* ((margin (* *handle-scale* (indicator-size)))
-	     (x0 (- x margin))
-	     (y0 (- y margin)))
-	(setf %x (+ x0 
-		    (* px (+ width margin))))
-	(setf %y (+ y0 
-		    (* py (+ height margin))))
-	(setf %width margin)
-	(setf %height margin)))))
+(defmethod layout ((self handle))
+  (with-local-fields 
+    (with-fields (x y width height) %target
+      (destructuring-bind (px py) (getf *indicator-positions* %indicator)
+	(let* ((margin (* *handle-scale* (indicator-size)))
+	       (x0 (- x margin))
+	       (y0 (- y margin)))
+	  (setf %x (+ x0 
+		      (* px (+ width margin))))
+	  (setf %y (+ y0 
+		      (* py (+ height margin))))
+	  (setf %width margin)
+	  (setf %height margin))))))
 
 (define-method draw handle ()
   (draw-indicator %indicator %x %y 
@@ -242,25 +242,30 @@
   (with-local-fields
       (assert (xelfp target))
     (setf %target target)
-    (apply #'call-next-method 
-	   (mapcar #'(lambda (handle)
-		       (clone (make-prototype-id handle) target))
-		   *halo-handles*))))
+    (setf %inputs
+	  (mapcar #'(lambda (handle)
+		      (clone (find-prototype (find-object handle)) :target (find-object target)))
+		  *halo-handles*))
+    (update-parent-links (find-object self))
+    (update-result-lists (find-object self))
+    (layout (find-object self))))
+
 
 (defun halo-minimum-height () (* 5 *handle-scale* (indicator-size)))
 (defun halo-minimum-width () (* 5 *handle-scale* (indicator-size)))
 
 (define-method layout halo ()
-  (with-fields (x y width height) %target
-    (let ((size (* *handle-scale* (indicator-size))))
-      (setf %x (- x size))
-      (setf %y (- y size))
-      ;; add twice the halo border to make sure we get clicks all the
-      ;; way to the right of the halo
-      (setf %width (max (+ width (* 2 size)) (halo-minimum-width)))
-      (setf %height (max (+ height (* 2 size)) (halo-minimum-height)))
+  (with-local-fields
+    (with-fields (x y width height) %target
+      (let ((size (* *handle-scale* (indicator-size))))
+	(setf %x (- x size))
+	(setf %y (- y size))
+	;; add twice the halo border to make sure we get clicks all the
+	;; way to the right of the halo
+	(setf %width (max (+ width (* 2 size)) (halo-minimum-width)))
+	(setf %height (max (+ height (* 2 size)) (halo-minimum-height)))
       ;; now lay out the individual items
-      (mapc #'layout %inputs))))
+	(mapc #'layout (mapcar #'find-object %inputs))))))
 
 (define-method draw halo ()
   (mapc #'draw %inputs))

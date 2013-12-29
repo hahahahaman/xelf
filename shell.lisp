@@ -111,7 +111,7 @@
 
 (define-method draw modeline ()
   (with-fields (x y width height) self
-    (draw%super self)
+    (call-next-method)
     (draw-line x y (+ x width) y :color "gray50")))
 
 ;;; Shell prompt
@@ -237,7 +237,13 @@
     (move-to self 
 	     (+ target-x (window-x))
 	     (+ target-y (window-y)))
-    (phrase%layout self)))
+  (with-fields (inputs orientation) self
+    (if (null inputs)
+	(layout-as-null self)
+	(ecase orientation
+	  (:horizontal (layout-horizontally self))
+	  (:vertical (layout-vertically self)))))))
+
 
 (define-method insert-output shell (item)
   (unfreeze %%output)
