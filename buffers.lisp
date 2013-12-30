@@ -1312,7 +1312,7 @@ block found, or nil if none is found."
 	    ;; clicks that don't hit an object are sent to self
 	    ;; (if you hold shift, they are ALWAYS sent to buffer)
 	    (let ((it (if (holding-shift) self
-			  (find-object (or focused-block self)))))
+			  (find-object (or focused-block self) :noerror))))
 	      (when (xelfp it)
 		(with-buffer self 
 		  (cond

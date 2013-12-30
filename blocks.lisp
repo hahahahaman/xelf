@@ -1748,11 +1748,11 @@ Note that the center-points of the objects are used for comparison."
     (when (and buffer (has-method :queue-layout buffer))
       (queue-layout buffer))))
 
-(define-method bring-to-front nil (xblock)
-  (with-fields (inputs) self
-    (assert (contains self xblock))
-    (delete-input self xblock)
-    (append-input self xblock)))
+;; (define-method bring-to-front nil (xblock)
+;;   (with-fields (inputs) self
+;;     (assert (contains self xblock))
+;;     (delete-input self xblock)
+;;     (append-input self xblock)))
 
 ;; (define-method update nil ()
 ;;   (with-buffer self 
