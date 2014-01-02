@@ -503,10 +503,11 @@
   (move-to object x y))
 
 (define-method drop-object buffer (object &optional x y z)
-  (add-object self object)
-  (when (and (numberp x) (numberp y))
-    (move-to object x y (or z (+ %z 1))))
-  (after-drop-hook (find-object object)))
+  (with-quadtree (field-value :quadtree self)
+    (add-object self (find-object object))
+    (when (and (numberp x) (numberp y))
+      (move-to object x y (or z (+ %z 1))))
+    (after-drop-hook (find-object object))))
 
 (define-method drop-selection buffer ()
   (dolist (each (get-selection self))
@@ -956,8 +957,8 @@ slowdown. See also quadtree.lisp")
       ;; now draw the object layer
       (draw-object-layer self)
       ;; possibly redraw cursor to ensure visibility.
-      (when (and (xelfp %cursor) %redraw-cursor)
-	(draw (find-object %cursor)))
+      ;; (when (and (xelfp %cursor) %redraw-cursor)
+      ;; 	(draw (find-object %cursor)))
       ;; draw region if needed
       (when %region (draw-region self))
       ;; draw any overlays
@@ -1264,7 +1265,7 @@ block found, or nil if none is found."
 (define-method release buffer (x y &optional button)
   (with-buffer self
     (with-fields 
-	(drag-offset drag-start hover drag click-start drag-button
+	(drag-offset drag-start hover drag quadtree click-start drag-button
 		     region-start region click-start-block drag-origin
 		     focused-block) self
       (end-region self)
@@ -1281,31 +1282,12 @@ block found, or nil if none is found."
 		  (when drag-origin 
 		    (add-block drag-origin drag drop-x drop-y))
 		  ;; ok, drop. where are we dropping?
-		  (progn 
-		    (when drag-parent
-		      (unplug-from-parent drag))
-		    (if %object-p
-			(unless (and hover 
-				     (accept (find-object hover) (find-object drag)))
-			  (move-to drag drop-x drop-y)
-			  (after-drag-hook drag))
-			(if (null hover)
-			    ;; don't drop the shell into the world
-			    (when (not (object-eq *shell* drag))
-			      ;; ok, what layer does it go in?
-			      (if (%quadtree-node drag)
-				  ;; gameworld
-				  (add-object self drag drop-x drop-y)
-				  ;; shell (disabled for now)
-				(add-object self drag drop-x drop-y)))
-			    ;; dropping on another block
-			    (if (accept hover drag)
-				(invalidate-layout hover)
-				;; hovered block did not accept drag. 
-				;; drop it back in the program layer.
-				(add-block self drag drop-x drop-y))))))
-	      ;; focus on the dropped block
-	      (focus-on self drag)))
+		  (if (and hover (can-accept (find-object hover)))
+		      ;; drop into container
+		      (accept (find-object hover) (find-object drag))
+		      ;; drop onto map
+		      (with-quadtree quadtree
+			(drop-object self drag drop-x drop-y))))))
 	  ;;
 	  ;; we were clicking instead of dragging
 	  (progn

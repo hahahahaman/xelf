@@ -182,8 +182,9 @@ make-input-accessor-forms *persistent-variables-file-name* duplicate
 persistent-variables-file combine save-variables indicator-size
 draw-indicator load-variables *block-text-colors* defblock capture
 paste-from make-input-accessor-macrolet-clause heading-direction
-make-input-accessor-defun-forms input-reference-p input-block with-local-fields 
-*default-quadtree-depth* input-value *block-bold* *bold* *italic*
-xelf-object xelf-object-p object-p *block-italic* xblock after-drag-hook
+defun-memo make-input-accessor-defun-forms input-reference-p phrase
+label input-block with-local-fields *default-quadtree-depth*
+input-value *block-bold* *bold* *italic* xelf-object xelf-object-p
+object-p *block-italic* xblock after-drag-hook
 colliding-with-bounding-box define-block-macro heading-degrees))
 

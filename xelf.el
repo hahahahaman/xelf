@@ -83,7 +83,7 @@
 		   (group (one-or-more (not (any space))))))
       (1 font-lock-keyword-face)
       (2 font-lock-type-face))
-    (,(rx (sequence "(" (group "define-block")
+    (,(rx (sequence "(" (group "defblock")
 		   (one-or-more space)
 		   (group (one-or-more (not (any space))))))
       (1 font-lock-keyword-face)
