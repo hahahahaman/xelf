@@ -950,7 +950,7 @@ slowdown. See also quadtree.lisp")
       ;; 	(gl:translate %x %y 0))
       ;; draw background 
       (if background-image
-	  (draw-image background-image 0 0)
+	  (draw-image background-image 0 0 :height height :width width)
 	  (when background-color
 	    (draw-box 0 0 width height
 		      :color background-color)))
@@ -1181,7 +1181,7 @@ block found, or nil if none is found."
     (with-fields (focused-block drag-button click-start click-start-block) self
       (when click-start
 	(destructuring-bind (x1 . y1) click-start
-	  (when (and focused-block click-start-block
+	  (when (and (xelfp focused-block) (xelfp click-start-block)
 		     (> (distance x y x1 y1)
 			*minimum-drag-distance*)
 		     (can-pick (find-object click-start-block)))

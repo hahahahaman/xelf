@@ -64,7 +64,6 @@
 	       (vleft (- uleft border))
 	       (vright (+ border vleft (- right left)))
 	       (vbottom (+ border vtop (- bottom top))))
-;;	  (message "VTOP ~S ~S ~S ~S" vtop vleft vright vbottom) 
 	  (block colliding
 	    (flet ((check (object)
 		     (when (and (xelfp object)
@@ -342,63 +341,66 @@ the goal."
 	 (starting-column (round (/ x0 cx)))
 	 (goal-row (round (/ y1 cy)))
 	 (goal-column (round (/ x1 cx))))
-    ;; reset the pathfinding heap
-    (setf (path-end path) nil)
-    ;; add the starting node to the open set
-    (setf G 0)
-    (setf H (max (abs (- starting-row goal-row))
-		 (abs (- starting-column goal-column))))
-    (setf F (+ G H))
-    (setf selected-node (make-node :row starting-row 
-				       :column starting-column
-				       :old-G 0
-				       :parent nil :G G :F F :H H))
-    ;;
-    (open-node path selected-node)
-    ;; start pathfinding
-    (setf target-node
-	  (block finding
-	    ;; select and close the node with smallest F score
-	    (while (setf selected-node (close-node path))
-	      ;; did we fail to reach the goal? 
-	      (when (null selected-node)
-		(return-from finding nil))
-	      ;; are we at the goal square?
-	      (when (and (equal goal-row (node-row selected-node))
-			 (equal goal-column (node-column selected-node)))
-		(return-from finding selected-node))
-	      ;; process adjacent walkable non-closed nodes
-	      (mapc #'(lambda (node)
-			;; is this cell already on the open list?
-			(if (equal path-turn-number (node-open node))
-			    ;; yes. update scores if needed
-			    (score-node path node path-turn-number
-					selected-node goal-row goal-column)
-			    (progn 
-			      ;; it's not on the open list. add it to the open list
-			      (score-node path node path-turn-number selected-node
-					  goal-row goal-column)
-			      (open-node path node))))
-		    ;; map over adjacent nodes
-		    (node-successors path selected-node 
-				     path-turn-number
-				     goal-row goal-column)))))
-    ;; did we find a path? 
-    (if (node-p target-node)
-	;; save the path by walking backwards from the target
-	(let ((previous-node target-node)
-	      (current-node nil))
-	  (while (setf current-node (node-parent previous-node))
-	    ;; what direction do we travel to get from current to previous? 
-	    (push (list (node-row current-node)
-			(node-column current-node))
-		  coordinates)
-	    (setf previous-node current-node))
-	  ;; return the finished path
-	  coordinates)
-	;; return nil
-	nil)))
-
+    (if (obstructed path goal-row goal-column)
+	(prog1 nil (message "Not pathfinding to obstructed area."))
+	(progn 
+	  ;; reset the pathfinding heap
+	  (setf (path-end path) nil)
+	  ;; add the starting node to the open set
+	  (setf G 0)
+	  (setf H (max (abs (- starting-row goal-row))
+		       (abs (- starting-column goal-column))))
+	  (setf F (+ G H))
+	  (setf selected-node (make-node :row starting-row 
+					 :column starting-column
+					 :old-G 0
+					 :parent nil :G G :F F :H H))
+	  ;;
+	  (open-node path selected-node)
+	  ;; start pathfinding
+	  (setf target-node
+		(block finding
+		  ;; select and close the node with smallest F score
+		  (while (setf selected-node (close-node path))
+		    ;; did we fail to reach the goal? 
+		    (when (null selected-node)
+		      (return-from finding nil))
+		    ;; are we at the goal square?
+		    (when (and (equal goal-row (node-row selected-node))
+			       (equal goal-column (node-column selected-node)))
+		      (return-from finding selected-node))
+		    ;; process adjacent walkable non-closed nodes
+		    (mapc #'(lambda (node)
+			      ;; is this cell already on the open list?
+			      (if (equal path-turn-number (node-open node))
+				  ;; yes. update scores if needed
+				  (score-node path node path-turn-number
+					      selected-node goal-row goal-column)
+				  (progn 
+				    ;; it's not on the open list. add it to the open list
+				    (score-node path node path-turn-number selected-node
+						goal-row goal-column)
+				    (open-node path node))))
+			  ;; map over adjacent nodes
+			  (node-successors path selected-node 
+					   path-turn-number
+					   goal-row goal-column)))))
+	  ;; did we find a path? 
+	  (if (node-p target-node)
+	      ;; save the path by walking backwards from the target
+	      (let ((previous-node target-node)
+		    (current-node nil))
+		(while (setf current-node (node-parent previous-node))
+		  ;; what direction do we travel to get from current to previous? 
+		  (push (list (node-row current-node)
+			      (node-column current-node))
+			coordinates)
+		  (setf previous-node current-node))
+		;; return the finished path
+		coordinates)
+	      ;; return nil
+	      nil)))))
+    
 (defun address-to-waypoint (path address)
   (destructuring-bind (row column) address
     (list (round (column-to-x path column))

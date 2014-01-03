@@ -351,6 +351,8 @@ engine. The field `%tags' is a set of keyword symbols; if a symbol
 
 (define-method can-accept nil () nil)
 
+(defmethod will-accept ((container xelf-object) (item xelf-object)) nil)
+
 (define-method accept nil (other-block)
   "Try to accept OTHER-BLOCK as a drag-and-dropped input. Return
 non-nil to indicate that the block was accepted, nil otherwise."
