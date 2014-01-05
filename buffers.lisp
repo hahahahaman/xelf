@@ -219,7 +219,10 @@
   (sort objects #'< :key #'%z))
 
 (define-method maximum-z-value buffer ()
-  (apply #'max (mapcar #'%z (get-objects self))))
+  (let ((things (mapcar #'%z (get-objects self))))
+    (if things 
+	(apply #'max things)
+	1)))
 
 (define-method has-object buffer (thing)
   (with-local-fields
@@ -509,6 +512,8 @@
       (move-to object x y (or z (+ %z 1))))
     (after-drop-hook (find-object object))))
 
+(define-method finish-drag nil ())
+
 (define-method drop-selection buffer ()
   (dolist (each (get-selection self))
     (drop-object self each)))
@@ -716,17 +721,19 @@ slowdown. See also quadtree.lisp")
 (define-method adjust-bounding-box-maybe buffer ()
   (if (emptyp self)
       self
-      (let ((objects-bounding-box 
-	      (multiple-value-list 
-	       (find-bounding-box (get-objects self)))))
-	(destructuring-bind (top left right bottom)
-	    objects-bounding-box
-	  ;; are all the objects inside the existing box?
-	  (prog1 self
-	    (unless (bounding-box-contains 
-		     (multiple-value-list (bounding-box self))
-		     objects-bounding-box)
-	      (resize self right bottom)))))))
+      (let ((objects (get-objects self)))
+	(when objects
+	  (let ((objects-bounding-box 
+		  (multiple-value-list 
+		   (find-bounding-box objects))))
+	    (destructuring-bind (top left right bottom)
+		objects-bounding-box
+	      ;; are all the objects inside the existing box?
+	      (prog1 self
+		(unless (bounding-box-contains 
+			 (multiple-value-list (bounding-box self))
+			 objects-bounding-box)
+		  (resize self right bottom)))))))))
 
 (defmacro with-new-buffer (&body body)
   `(with-buffer (clone *buffer-prototype*) 
@@ -1282,12 +1289,14 @@ block found, or nil if none is found."
 		  (when drag-origin 
 		    (add-block drag-origin drag drop-x drop-y))
 		  ;; ok, drop. where are we dropping?
-		  (if (and hover (can-accept (find-object hover)))
-		      ;; drop into container
-		      (accept (find-object hover) (find-object drag))
-		      ;; drop onto map
-		      (with-quadtree quadtree
-			(drop-object self drag drop-x drop-y))))))
+		  (progn 
+		    (if (and hover (can-accept (find-object hover)))
+			;; drop into container
+			(accept (find-object hover) (find-object drag))
+			;; drop onto map
+			(with-quadtree quadtree
+			  (drop-object self drag drop-x drop-y)))
+		    (finish-drag drag)))))
 	  ;;
 	  ;; we were clicking instead of dragging
 	  (progn

@@ -342,7 +342,7 @@ the goal."
 	 (goal-row (round (/ y1 cy)))
 	 (goal-column (round (/ x1 cx))))
     (if (obstructed path goal-row goal-column)
-	(prog1 nil (message "Not pathfinding to obstructed area."))
+	(prog1 nil);; (message "Not pathfinding to obstructed area."))
 	(progn 
 	  ;; reset the pathfinding heap
 	  (setf (path-end path) nil)
