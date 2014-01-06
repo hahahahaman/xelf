@@ -2748,13 +2748,14 @@ of the music."
 
 (defun switch-to-buffer (thing)
   ;; accept both names and buffers
-  (let ((buffer (if (xelfp thing) 
-		    thing
-		    ;; just create a new buffer
-		    (find-buffer thing :create t))))
-    (push (%buffer-name buffer) *buffer-history*)
+  ;; (let ((buffer (if (xelfp thing) 
+  ;; 		    thing
+  ;; 		    ;; just create a new buffer
+  ;; 		    (find-buffer thing :create t))))
+  (let ((buffer (find-object thing)))
+    ;; (push (%buffer-name buffer) *buffer-history*)
     (setf *buffer* buffer)
-    (at-next-update (start-alone (find-object buffer)))))
+    (start-alone buffer)))
 
 (defun make-scratch-buffer ()
   (let ((buffer (find-buffer "*scratch*" :create t)))

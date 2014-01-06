@@ -721,19 +721,31 @@ slowdown. See also quadtree.lisp")
 (define-method adjust-bounding-box-maybe buffer ()
   (if (emptyp self)
       self
-      (let ((objects (get-objects self)))
-	(when objects
-	  (let ((objects-bounding-box 
-		  (multiple-value-list 
-		   (find-bounding-box objects))))
-	    (destructuring-bind (top left right bottom)
-		objects-bounding-box
-	      ;; are all the objects inside the existing box?
-	      (prog1 self
-		(unless (bounding-box-contains 
-			 (multiple-value-list (bounding-box self))
-			 objects-bounding-box)
-		  (resize self right bottom)))))))))
+      (let ((objects-bounding-box 
+	      (multiple-value-list 
+	       (find-bounding-box (get-objects self)))))
+	(destructuring-bind (top left right bottom)
+	    objects-bounding-box
+	  ;; are all the objects inside the existing box?
+	  (prog1 self
+	    (unless (bounding-box-contains 
+		     (multiple-value-list (bounding-box self))
+		     objects-bounding-box)
+	      (resize self right bottom)))))))
+
+      ;; (let ((objects (get-objects self)))
+      ;; 	(when objects
+      ;; 	  (let ((objects-bounding-box 
+      ;; 		  (multiple-value-list 
+      ;; 		   (find-bounding-box objects))))
+      ;; 	    (destructuring-bind (top left right bottom)
+      ;; 		objects-bounding-box
+      ;; 	      ;; are all the objects inside the existing box?
+      ;; 	      (prog1 self
+      ;; 		(unless (bounding-box-contains 
+      ;; 			 (multiple-value-list (bounding-box self))
+      ;; 			 objects-bounding-box)
+      ;; 		  (resize self right bottom)))))))))
 
 (defmacro with-new-buffer (&body body)
   `(with-buffer (clone *buffer-prototype*) 
