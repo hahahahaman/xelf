@@ -1718,6 +1718,11 @@ The order is (TOP LEFT RIGHT BOTTOM)."
   (with-fields (x y) thing
     (find-heading %x %y x y)))
 
+(define-method heading-between nil (thing)
+  (multiple-value-bind (x y) (center-point self)
+    (multiple-value-bind (x0 y0) (center-point thing)
+      (find-heading x y x0 y0))))
+
 (define-method heading-to-cursor nil ()
   "The heading (in radians) to the cursor from this xblock."
   (heading-to-thing self (get-cursor (current-buffer))))
