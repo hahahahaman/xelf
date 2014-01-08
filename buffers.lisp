@@ -213,7 +213,7 @@
 
 (define-method get-objects buffer ()
   (loop for object being the hash-values in (field-value :objects self)
-	when (xelfp object) collect object))
+	when (xelfp object) collect (find-object object)))
 
 (defun z-sort (objects)
   (sort objects #'< :key #'%z))
@@ -1101,6 +1101,9 @@ slowdown. See also quadtree.lisp")
   (declare (ignore x y))
   self)
 
+(define-method z-sorted-objects buffer ()
+  (nreverse (z-sort (get-objects self))))
+
 (define-method hit-inputs buffer (x y)
   "Recursively search the blocks in this buffer for a block
 intersecting the point X,Y. We have to search the top-level blocks
@@ -1129,7 +1132,7 @@ block found, or nil if none is found."
 		      (try parent)))
 		  ;; try buffer objects
 		  (block trying
-		    (dolist (object (nreverse (z-sort (get-objects self))))
+		    (dolist (object (z-sorted-objects self))
 		      (let ((result (try object)))
 			(when result 
 			  (setf object-p t)
@@ -1215,6 +1218,10 @@ block found, or nil if none is found."
 		(setf click-start nil)
 		(setf click-start-block nil)))))))))
 
+(define-method drag-candidate buffer (drag x y)
+  (declare (ignore drag))
+  (hit-inputs self x y))
+
 (define-method handle-point-motion buffer (mouse-x mouse-y)
   (with-fields (inputs hover highlight click-start drag-offset quadtree
 		       region-start region
@@ -1230,7 +1237,7 @@ block found, or nil if none is found."
 	    (destructuring-bind (ox . oy) drag-offset
 	      (let ((target-x (- mouse-x ox))
 		    (target-y (- mouse-y oy)))
-		(let ((candidate (hit-inputs self target-x target-y)))
+		(let ((candidate (drag-candidate self drag target-x target-y)))
 		  ;; obviously we dont want to plug a block into itself.
 		  (setf hover (if (object-eq drag candidate) nil
 				  (find-uuid candidate)))
@@ -1302,7 +1309,8 @@ block found, or nil if none is found."
 		    (add-block drag-origin drag drop-x drop-y))
 		  ;; ok, drop. where are we dropping?
 		  (progn 
-		    (if (and hover (can-accept (find-object hover)))
+		    (if (and hover (will-accept (find-object hover) 
+						(find-object drag)))
 			;; drop into container
 			(accept (find-object hover) (find-object drag))
 			;; drop onto map
