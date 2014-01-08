@@ -222,7 +222,7 @@
   (let ((things (mapcar #'%z (get-objects self))))
     (if things 
 	(apply #'max things)
-	1)))
+	0)))
 
 (define-method has-object buffer (thing)
   (with-local-fields
@@ -509,7 +509,7 @@
   (with-quadtree (field-value :quadtree self)
     (add-object self (find-object object))
     (when (and (numberp x) (numberp y))
-      (move-to object x y (or z (+ %z 1))))
+      (move-to object x y (or z 1)))
     (after-drop-hook (find-object object))))
 
 (define-method finish-drag nil ())
