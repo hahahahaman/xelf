@@ -219,10 +219,14 @@
   (sort objects #'< :key #'%z))
 
 (define-method maximum-z-value buffer ()
-  (let ((things (mapcar #'%z (get-objects self))))
-    (if things 
-	(apply #'max things)
-	0)))
+  (let ((z 0))
+    (loop for object being the hash-values in (field-value :objects (current-buffer)) 
+	  do (setf z (max z (field-value :z (find-object object)))))
+    z))
+  ;; (let ((things (mapcar #'%z (get-objects self))))
+  ;;   (if things 
+  ;; 	(apply #'max things)
+  ;; 	0)))
 
 (define-method has-object buffer (thing)
   (with-local-fields
