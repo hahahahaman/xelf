@@ -1357,8 +1357,7 @@ block found, or nil if none is found."
 	      ;;(select self focused-block))
 	      (setf click-start nil))))
       ;; clean up bookeeping
-      (clear-drag-data self)
-      (invalidate-layout self))))
+      (clear-drag-data self))))
 
 ;; SHIFT-click actions for buffers
   

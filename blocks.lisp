@@ -1692,8 +1692,9 @@ The order is (TOP LEFT RIGHT BOTTOM)."
 (defun colliding-with-bounding-box (self top left right bottom)
   ;; you must pass arguments in Y X order since this is TOP then LEFT
   (with-field-values (x y width height) self
-    (point-in-rectangle-p (cfloat x) (cfloat y) (cfloat width) (cfloat height)
-			  top left (- right left) (- bottom top))))
+    (when (and width height)
+      (point-in-rectangle-p (cfloat x) (cfloat y) (cfloat width) (cfloat height)
+			    top left (- right left) (- bottom top)))))
 
 ;; (define-method contained-in-bounding-box nil (bounding-box)
 ;;   (bounding-box-contains bounding-box (multiple-value-list (bounding-box self))))
