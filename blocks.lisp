@@ -1601,12 +1601,13 @@ The following xblock fields will control sprite drawing:
   "Return this nil (or child input xblock) if the coordinates MOUSE-X
 and MOUSE-Y identify a point inside the nil (or input xblock.)"
   (with-fields (x y width height inputs) self
-    (when (within-extents mouse-x mouse-y x y
-			  (+ x width) (+ y height))
-      (labels ((try (it)
-		 (hit it mouse-x mouse-y)))
-	(or (some #'try inputs) 
-	    self)))))
+    (when (and x y width height)
+      (when (within-extents mouse-x mouse-y x y
+			    (+ x width) (+ y height))
+	(labels ((try (it)
+		   (hit it mouse-x mouse-y)))
+	  (or (some #'try inputs) 
+	      self))))))
 
 (define-method bounding-box nil ()
   "Return this object's bounding box as multiple values.
