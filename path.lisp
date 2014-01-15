@@ -414,10 +414,10 @@ the goal."
 		     (truncate x1)
 		     (truncate y1))))
 
-(defun print-path (foo stream)
-  (format stream "#<% XELF PATH>"))
+;; (defun print-path (foo stream)
+;;   (format stream "#<% XELF PATH>"))
 
-(defmethod print-object ((foo xelf::path) stream)
-  (print-path foo stream))
+;; (defmethod print-object ((foo xelf::path) stream)
+;;   (print-path foo stream))
 
 ;;; path.lisp ends here
