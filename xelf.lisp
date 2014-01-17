@@ -177,8 +177,9 @@ arrange-beside arrange-below load-variable-resource translate
 save-variable-resource window-x window-y *persistent-variables*
 with-new-buffer with-border with-blank-buffer with-buffer-prototype
 with-buffer remove-trailing-space *buffer-prototype* step-coordinates
-*default-frame-rate* make-field-accessor-forms save-excursion colliding-with
-make-input-accessor-forms *persistent-variables-file-name* duplicate will-accept
+*default-frame-rate* make-field-accessor-forms save-excursion
+colliding-with start-region end-region make-input-accessor-forms
+*persistent-variables-file-name* duplicate will-accept
 persistent-variables-file combine save-variables indicator-size
 draw-indicator load-variables *block-text-colors* defblock capture
 paste-from make-input-accessor-macrolet-clause heading-direction

@@ -1904,7 +1904,7 @@ Note that the center-points of the objects are used for comparison."
 	     (,delay-sym ,delay))
 	 (add-task ,target-sym
 		   (new 'task 
-			:method ,(make-keyword method)
+			:method ',(make-non-keyword method)
 			:target ,target-sym
 			:subtasks (list ,@(make-tasks delay-sym subexpressions))
 			:arguments (list ,@arguments)
