@@ -493,8 +493,7 @@
       
 (define-method remove-object buffer (object)
   (destroy-halo object)
-  (when (%quadtree-node object)
-    (quadtree-delete-maybe object))
+  (with-buffer self (quadtree-delete-maybe object))
   (remhash (the simple-string (find-uuid object)) %objects))
 
 (define-method remove-thing-maybe buffer (object)

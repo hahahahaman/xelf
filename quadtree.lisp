@@ -184,7 +184,7 @@ NODE, if any."
 	 ;; none of them are suitable. stay here
 	 node))))
 
-(defun quadtree-insert (object &optional (tree *quadtree*))
+(defmethod quadtree-insert ((object xelf-object) &optional (tree *quadtree*))
   (let ((node0 
 	  (multiple-value-bind (top left right bottom) (bounding-box (find-object object))
 	    (quadtree-search top left right bottom tree))))
@@ -205,7 +205,7 @@ NODE, if any."
       ;; 		    (quadtree-objects node)
       ;; 		    :test 'eq)))))
 
-(defun quadtree-delete (object0 &optional (tree *quadtree*))
+(defmethod quadtree-delete ((object0 xelf-object) &optional (tree *quadtree*))
   (let ((object (find-object object0)))
     ;; grab the cached quadtree node
     (let ((node (or (field-value :quadtree-node object) tree)))
@@ -220,11 +220,11 @@ NODE, if any."
       ;; 			 (quadtree-objects node)
       ;; 			 :test 'eq))))))
 
-(defun quadtree-insert-maybe (object &optional (tree *quadtree*))
+(defmethod quadtree-insert-maybe ((object xelf-object) &optional (tree *quadtree*))
   (when tree
     (quadtree-insert object tree)))
 
-(defun quadtree-delete-maybe (object &optional (tree *quadtree*))
+(defmethod quadtree-delete-maybe ((object xelf-object) &optional (tree *quadtree*))
   (when (and tree (field-value :quadtree-node object))
     (quadtree-delete object tree)))
 

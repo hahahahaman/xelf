@@ -596,9 +596,9 @@ See `keys.lisp' for the full table of key and modifier symbols.
       (list 
        ;; create a method call 
        (let ((task (new 'task
-			   (make-keyword (first binding))
-			   self
-			   :arguments (rest binding))))
+			(first binding)
+			self
+			:arguments (rest binding))))
 	 (bind-event-to-task self name modifiers task))))))
 
 (define-method bind-any-default-events nil ()
@@ -1839,7 +1839,7 @@ Note that the center-points of the objects are used for comparison."
 		(null clock)
 		(and (integerp clock)
 		     (plusp clock))))
-    (setf (field-value :method self) (make-keyword method)
+    (setf (field-value :method self) method
 	  (field-value :arguments self) arguments
 	  (field-value :target self) (find-uuid target)
 	  (field-value :subtasks self) subtasks
@@ -1849,8 +1849,9 @@ Note that the center-points of the objects are used for comparison."
   (setf %finished t))
 
 (define-method evaluate task ()
-  (when (xelfp %target)
-    (apply #'send %method (find-object %target) %arguments)))
+  (with-local-fields
+    (when (xelfp %target)
+      (apply (symbol-function %method) (find-object %target) %arguments))))
 
 (define-method running task ()
   (with-fields (method target arguments clock finished) self
