@@ -104,6 +104,7 @@
   (region :initform nil)
   (region-start :initform nil)
   ;; dragging info
+  already-failed
   (drag :initform nil 
   	:documentation "Block being dragged, if any.")
   (drag-button :initform nil)
@@ -1202,6 +1203,8 @@ block found, or nil if none is found."
 	      (setf drag-start (cons dx dy))
 	      (setf drag-offset (cons x-offset y-offset)))))))))
 
+(define-method drag-fail buffer (x y))
+
 (define-method drag-maybe buffer (x y)
   ;; require some actual mouse movement to initiate a drag
   (with-buffer self
@@ -1209,19 +1212,23 @@ block found, or nil if none is found."
       (when click-start
 	(destructuring-bind (x1 . y1) click-start
 	  (when (and (xelfp focused-block) (xelfp click-start-block)
-		     (> (distance x y x1 y1)
-			*minimum-drag-distance*)
-		     (can-pick (find-object click-start-block)))
-	    (let ((drag 
-		    (if (and drag-button (= 3 drag-button))
-			;; right-drag means "grab whole thing"
-			(topmost (find-object click-start-block) )
-			(pick (find-object click-start-block)))))
-	      (when drag 
-		(begin-drag self x y (find-object drag))
-		;; clear click data
-		(setf click-start nil)
-		(setf click-start-block nil)))))))))
+		   (> (distance x y x1 y1)
+		      *minimum-drag-distance*))
+	      (if (can-pick (find-object click-start-block))
+		  (let ((drag 
+			  (if (and drag-button (= 3 drag-button))
+			      ;; right-drag means "grab whole thing"
+			      (topmost (find-object click-start-block) )
+			      (pick (find-object click-start-block)))))
+		    (when drag 
+		      (begin-drag self x y (find-object drag))
+		      ;; clear click data
+		      (setf click-start nil)
+		      (setf click-start-block nil)))
+		  ;; signal any failure to pick
+		  (unless %already-failed
+		    (setf %already-failed t)
+		    (drag-fail self x y)))))))))
 
 (define-method drag-candidate buffer (drag x y)
   (declare (ignore drag))
@@ -1297,8 +1304,9 @@ block found, or nil if none is found."
   (with-buffer self
     (with-fields 
 	(drag-offset drag-start hover drag quadtree click-start drag-button
-		     region-start region click-start-block drag-origin
+		     region-start region click-start-block drag-origin already-failed
 		     focused-block) self
+      (setf already-failed nil)
       (end-region self)
       (select-region self)
       (if drag
