@@ -1203,7 +1203,7 @@ block found, or nil if none is found."
 	      (setf drag-start (cons dx dy))
 	      (setf drag-offset (cons x-offset y-offset)))))))))
 
-(define-method drag-fail buffer (x y))
+(define-method drag-fail buffer (x y object))
 
 (define-method drag-maybe buffer (x y)
   ;; require some actual mouse movement to initiate a drag
@@ -1228,7 +1228,8 @@ block found, or nil if none is found."
 		  ;; signal any failure to pick
 		  (unless %already-failed
 		    (setf %already-failed t)
-		    (drag-fail self x y)))))))))
+		    (drag-fail self (find-object click-start-block)
+			       x y)))))))))
 
 (define-method drag-candidate buffer (drag x y)
   (declare (ignore drag))
