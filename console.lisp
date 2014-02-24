@@ -2449,6 +2449,10 @@ of the music."
 
 (defparameter *use-antialiased-text* t)
 
+(defun clear-cached-font-metrics ()
+  (clear-memoize 'font-height-*)
+  (clear-memoize 'font-text-width-*))
+
 ;; (defmethod _draw-string-blended-*_ ((string string) (x integer) (y integer) justify (surface sdl-surface) (font ttf-font) (color color))
 ;;   (with-surface (font-surface (_render-string-blended_ string font color nil nil) t)
 ;;     (set-surface-* font-surface :x x :y y)
@@ -2675,6 +2679,7 @@ of the music."
 	*resizable* t
 	*random-state* (make-random-state t))
   (clear-text-image-cache)
+  (clear-cached-font-metrics)
   (delete-all-textures)
   (reset-forth-interpreter)
   (sdl:init-sdl :video t :audio t :joystick t)
@@ -2697,7 +2702,8 @@ of the music."
 
 (defun shut-down ()
   ;; delete any cached textures and surfaces
-  ;; (clear-text-image-cache)
+  (clear-text-image-cache)
+  (clear-cached-font-metrics)
   ;; (delete-all-textures)
   (purge-all-objects)
   (delete-all-resources)

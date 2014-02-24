@@ -71,9 +71,6 @@
 (define-method goto prompt ()
   (say self "Enter command below at the >> prompt. Press ENTER when finished, or CONTROL-X to cancel."))
 
-(define-method say prompt (&rest args)
-  (apply #'message args))
-
 (defmethod initialize ((self prompt) &key)
   (with-local-fields
       (call-next-method self)
