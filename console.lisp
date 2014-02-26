@@ -1596,6 +1596,7 @@ also the documentation for DESERIALIZE."
   (ecase mode 
     (:additive (gl:blend-func :src-alpha :one))
     (:source (gl:blend-func :src-color :zero))
+    (:multiply (gl:blend-func :dst-color :one-minus-src-alpha))
     (:alpha2 (gl:blend-func :one :one-minus-src-alpha))
     (:mask (gl:blend-func :one :zero))
     (:additive2 (gl:blend-func :one :one))
