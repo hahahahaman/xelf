@@ -322,9 +322,9 @@
     (declare (ignore right bottom))
     (move-window-to 
      self 
-     (min (- %width (+ %window-x *gl-screen-width*))
+     (min (- %width *gl-screen-width*)
 	  (max 0 (- left (/ *gl-screen-width* 2))))
-     (min (- %height (+ %window-y *gl-screen-height*))
+     (min (- %height *gl-screen-height*)
 	  (max 0 (- top (/ *gl-screen-width* 2)))))))
 
 (define-method snap-window-to-cursor buffer ()
@@ -356,6 +356,7 @@
 
 (define-method follow-with-camera buffer (thing)
   (assert (or (null thing) (xelfp thing)))
+  (snap-window-to-object self thing)
   (setf %followed-object thing)
   (glide-window-to-object self %followed-object))
 
