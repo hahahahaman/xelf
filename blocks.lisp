@@ -73,6 +73,7 @@
   (tags :initform nil)
   (garbagep :initform nil)
   (no-background :initform t)
+  (color :initform "white")
   (temporary :initform nil)
   (methods :initform nil)
   (parent :initform nil :documentation "Link to enclosing parent block, or nil if none.")
@@ -1461,13 +1462,15 @@ The following xblock fields will control sprite drawing:
 
    %BLEND    Blending mode for OpenGL compositing.
              See the function `set-blending-mode' for a list of modes."
-  (with-fields (image x y z image-heading width height blend opacity) self
+  (with-fields (image x y z image-heading width color height blend opacity) self
     (if image 
 	(draw-image image x y :z z
 		    :blend blend :opacity opacity
 		    :height height :width width)
-	(progn (draw-patch self x y (+ x width) (+ y height))
-	       (mapc #'draw %inputs)))))
+	(draw-box x y width height :color color))))
+	
+	;; (progn (draw-patch self x y (+ x width) (+ y height))
+	;;        (mapc #'draw %inputs)))))
 
 (define-method draw-border nil (&optional (color *selection-color*))
   (let ((dash *dash*))

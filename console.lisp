@@ -1289,6 +1289,9 @@ If a record with that name already exists, it is replaced."
      (xelf:add-resources 
       (resource-entries-to-plists ',entries))))
 
+(defmacro define-resource (&rest entries)
+  `(defresource ,@entries))
+
 (defun directory-samples (dir)
   (remove-if-not #'sample-filename-p 
 		 (cl-fad:list-directory dir)))
@@ -1399,6 +1402,28 @@ If a record with that name already exists, it is replaced."
     (message "Starting without database or variables loading, due to user command."))
   (message "Started up successfully. Indexed ~A resources." (hash-table-count *resources*)))
  
+(defun open-project (name &key (title "Untitled")
+				    (width 640)
+				    (height 480)
+				    (frame-rate 30)
+				    (texture-filter :mipmap)
+				    path
+				    (use-antialiased-text t)
+				    (scale-output-to-window t))
+  (setf *project* (symbol-name name))
+  (setf *screen-height* height)
+  (setf *screen-width* width)
+  (setf *project-path* (or path (search-project-path *project*)))
+  (message "Set project path to ~A for project ~S" name (namestring *project-path*))
+  (setf *use-antialiased-text* use-antialiased-text)
+  (setf *default-texture-filter* texture-filter)
+  (setf *scale-output-to-window* scale-output-to-window))
+
+(defmacro define (name &body body)
+  (if (symbolp name) 
+      `(defblock (,name xblock) ,@body)
+      `(defblock ,name ,@body)))
+
 (defun load-project (&optional (project *project*) parameters)
   ;; don't load database by default
   (destructuring-bind (&key (without-database t) with-database) parameters
@@ -2697,7 +2722,7 @@ of the music."
   (initialize-buffers)
   (load-standard-resources)
   (setf *next-update-hook* nil)
-  (setf *project* *untitled*)
+  ;; (setf *project* *untitled*)
   (sdl:enable-unicode)
   (enable-key-repeat))
 
