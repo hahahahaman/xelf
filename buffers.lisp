@@ -224,7 +224,8 @@
       0
       (let ((z 0))
 	(loop for object being the hash-values in (field-value :objects (current-buffer)) 
-	      do (setf z (max z (field-value :z (find-object object)))))
+	      do (when (find-object object t)
+		   (setf z (max z (field-value :z (find-object object))))))
 	z)))
   ;; (let ((things (mapcar #'%z (get-objects self))))
   ;;   (if things 

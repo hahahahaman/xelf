@@ -142,7 +142,7 @@ either a symbol naming the field, or a list of the form (SYMBOL
 	  (plist-to-descriptors args)
 	  args))))
 
-(defun duplicate-safely (thing)
+(defmethod duplicate-safely ((thing xblock))
   (let ((dupe (duplicate thing)))
     (prog1 (find-object dupe)
       (setf (field-value :quadtree-node dupe) nil)
