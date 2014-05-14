@@ -361,6 +361,9 @@
   (setf %followed-object thing)
   (glide-window-to-object self %followed-object))
 
+(define-method stop-following buffer ()
+  (setf %followed-object nil))
+
 (define-method glide-follow buffer (object)
   (with-fields (window-x window-y width height) self
     (let ((margin-x (* %horizontal-scrolling-margin *gl-screen-width*))
