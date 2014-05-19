@@ -51,6 +51,11 @@
 	       (path-width path))))
     (cfloat (* cx column))))
 
+(defun within-buffer-boundaries-p (buffer top left right bottom)
+  (with-fields (height width) buffer
+    (and (<= 0 left right width)
+	 (<= 0 top bottom height))))
+
 (defun obstructed (path row column)
   (with-field-values (height width) 
       (path-buffer path)
@@ -64,19 +69,22 @@
 	       (vleft (- uleft border))
 	       (vright (+ border vleft (- right left)))
 	       (vbottom (+ border vtop (- bottom top))))
-	  (block colliding
-	    (flet ((check (object)
-		     (when (and (xelfp object)
-				(field-value :collision-type object)
-				(not (object-eq object (path-finder path)))
-				(has-tag object :solid))
-		       (return-from colliding object))))
-	      (prog1 nil
-		(quadtree-map-collisions 
-		 (cfloat vtop)
-		 (cfloat vleft)
-		 (cfloat vright)
-		 (cfloat vbottom) #'check)))))))))
+	  (if 
+	   (not (within-buffer-boundaries-p (current-buffer) top left right bottom))
+	   t
+	   (block colliding
+	     (flet ((check (object)
+		      (when (and (xelfp object)
+				 (field-value :collision-type object)
+				 (not (object-eq object (path-finder path)))
+				 (has-tag object :solid))
+			(return-from colliding object))))
+	       (prog1 nil
+		 (quadtree-map-collisions 
+		  (cfloat vtop)
+		  (cfloat vleft)
+		  (cfloat vright)
+		  (cfloat vbottom) #'check))))))))))
 
 (defstruct node 
   row 
