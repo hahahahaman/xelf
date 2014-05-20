@@ -1022,7 +1022,8 @@ This prepares it for printing as part of an XELF file."
 			:if-does-not-exist :create)
     (let ((*package* *keyword-package*))
       (with-standard-io-syntax 
-	(print sexp file))))
+	(let ((*print-circle* t))
+	  (print sexp file)))))
       ;;(format file "~S" sexp)))
   (message "Writing data to file ~S... Done." filename))
 
@@ -1846,15 +1847,10 @@ control the size of the individual frames or subimages."
 	(saved 0))
     (message "Serializing database...")
     (labels ((store (uuid object)
-	       ;; don't save prototypes 
-	       (when (null (object-name object))
-		 (if (%garbagep object)
-		     (incf garbage)
-		     (progn 
-		       (setf (gethash uuid database2) object)
-		       (incf saved))))))
+	       (setf (gethash uuid database2) object)
+	       (incf saved)))
       (maphash #'store database) ;; copy into database2
-      (message "Saving ~S objects (skipping ~S garbage)..." saved garbage)
+      (message "Saving ~S objects..." saved garbage)
       (values (make-resource :name "--database--"
 			     :type :database
 			     :data (serialize database2))

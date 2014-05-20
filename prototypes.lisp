@@ -1260,8 +1260,9 @@ evaluated, then any applicable initializer is triggered."
 ;; these will be properly re-initialized by the :AFTER-DESERIALIZE
 ;; method.
 
-(defconstant +object-type-key+ :%BLX1%OBJECT%)
-(defconstant +hash-type-key+ :%BLX1%HASH%)
+(defconstant +object-type-key+ :%XELF-1%OBJECT%)
+(defconstant +uuid-type-key+ :%XELF-1%UUID%)
+(defconstant +hash-type-key+ :%XELF-1%HASH%)
 
 (defvar *already-serialized* nil)
 
@@ -1286,18 +1287,21 @@ named in the field %EXCLUDED-FIELDS will be ignored."
 	     (mapcar #'serialize object)
 	     (cons (serialize (car object)) ;; it's a dotted pair
 		   (serialize (cdr object)))))
-	;; leave strings and uuids alone (but only use simple strings)
-	(string (coerce (copy-tree object) 'simple-string))
+	;; handle strings
+	(string
+	 (if (xelfp object)
+	     (cons +uuid-type-key+ (coerce (copy-tree object) 'simple-string))
+	     (coerce (copy-tree object) 'simple-string)))
 	;; pass other vectors
 	(vector (map 'vector #'serialize object))
 	;; flatten xelf objects
-	(object (let ((excluded-fields (when (has-field :excluded-fields object)
+	(xelf-object (let ((excluded-fields (when (has-field :excluded-fields object)
 					 (field-value :excluded-fields object))))
 		  ;; possibly prepare object for serialization.
-		  (when (has-method :before-serialize object)
-		    (send :before-serialize object))
+		  ;; (when (has-method :before-serialize object)
+		  ;;   (send :before-serialize object))
 		  ;; serialize
-		  (let ((super-name (name (super object)))
+		  (let ((super-name (class-name (class-of object)))
 			(name (name object))
 			(uuid (uuid object))
 			(fields (fields object))
@@ -1306,7 +1310,7 @@ named in the field %EXCLUDED-FIELDS will be ignored."
 				 (null name)
 				 (stringp uuid)))
 		    ;; don't duplicate objects already in database
-		    (if (and nil ;; removed for the time being
+		    (if (and ;; nil ;; removed for the time being
 			     (hash-table-p *already-serialized*)
 			     (gethash uuid *already-serialized*))
 			uuid

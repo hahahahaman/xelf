@@ -259,13 +259,15 @@ streams as a basis.
 ;;; Block lifecycle
 
 (defmethod initialize-instance :after ((self xblock) &key)
-  (with-fields (x y) self
-    (bind-any-default-events self)
-    (register-uuid self)
-    (setf x 0 y 0)))
+  ;; (with-fields (x y) self
+    ;; (bind-any-default-events self)
+    (register-uuid self))
+    ;; (setf x 0 y 0)))
     ;; textures loaded here may be bogus; do this later
     ;; (when (field-value :image self)
     ;;   (resize-to-image self))))
+
+(define-method after-revive xblock () nil)
 
 (defmethod initialize ((self xblock) &key inputs)
   (with-local-fields
