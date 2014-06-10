@@ -794,6 +794,8 @@ becomes larger.")
     (let ((r (find-restart 'muffle-warning c)))
       (when r (invoke-restart r)))))
 
+(defvar *opengl-es* nil)
+
 (defun start-session ()
   "Initialize the console, open a window, and play.
 We want to process all inputs, update the game state, then update the
@@ -804,6 +806,7 @@ display."
 					;			    :dt (setf *dt* (truncate (/ 1000 *frame-rate*))))))
 					;    (message "Simulation update time set to ~d milliseconds." *dt*)
       (message "Creating OpenGL window...")
+      (when *opengl-es* (sdl:set-gl-attribute #x9126 #x4))
       (cond (*fullscreen*
 	     (sdl:window *screen-width* *screen-height*
 		       :fps fps 
