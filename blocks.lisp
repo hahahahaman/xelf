@@ -1674,6 +1674,8 @@ The order is (TOP LEFT RIGHT BOTTOM)."
   "Respond to a collision detected with OBJECT. The default implementation does nothing."
   nil)
 
+(define-method special-collision nil () nil)
+
 (defun point-in-rectangle-p (x y width height o-top o-left o-width o-height)
   (declare (single-float x y width height o-top o-left o-width o-height) (optimize (speed 3)))
   (not (or 
