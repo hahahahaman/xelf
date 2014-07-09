@@ -2352,8 +2352,8 @@ of the music."
   (let ((image (find-resource-object name)))
     (draw-textured-rectangle
      x y z 
-     (or width (sdl:width image))
-     (or height (sdl:height image))
+     (cfloat (or width (sdl:width image)))
+     (cfloat (or height (sdl:height image)))
      (find-texture name)
      :blend blend 
      :opacity (or *image-opacity* opacity))))

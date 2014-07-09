@@ -11,7 +11,7 @@
 
 (setf sb-impl::*default-external-format* :utf-8)
 (asdf:oos 'asdf:load-op 'cypress)
-(sb-ext:save-lisp-and-die "cypress.exe"
+(sb-ext:save-lisp-and-die "cypress.bin"
 			  :toplevel (lambda ()
 				      (sb-posix:putenv
 				       (format nil "SBCL_HOME=~A" 
