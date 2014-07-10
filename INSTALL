@@ -43,16 +43,16 @@ corresponding *-dev versions of those packages.
       (push #P"~/src/xelf/" asdf:*central-registry*)
       (asdf:load-system :xelf)
 
-4.  My game "2x0ng" is written with Xelf, and can be downloaded via git:
+4.  My game "cypress" is written with Xelf, and can be downloaded via git:
 
-      	  git clone git@github.com:dto/2x0ng.git
+      	  git clone git@github.com:dto/cypress.git
 
       Then in SBCL:
       
-      (push #P"~/src/2x0ng/" asdf:*central-registry*) 
-      (asdf:load-system :2x0ng)
+      (push #P"~/src/cypress/" asdf:*central-registry*) 
+      (asdf:load-system :cypress)
       (setf xelf:*user-projects-directory* #P"~/src/")
-      (2x0ng:2x0ng)
+      (cypress:cypress)
 
 5. Getting help and reporting bugs 
 
