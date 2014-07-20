@@ -77,6 +77,10 @@
 		      (when (and (xelfp object)
 				 (field-value :collision-type object)
 				 (not (object-eq object (path-finder path)))
+				 ;; (if (and (has-tag object :round)
+				 ;; 	  (not (colliding-with object (path-finder path))))
+				 ;;     nil
+				 ;;     t)
 				 (has-tag object :solid))
 			(return-from colliding object))))
 	       (prog1 nil

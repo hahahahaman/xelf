@@ -1707,7 +1707,7 @@ The order is (TOP LEFT RIGHT BOTTOM)."
 ;; (define-method contained-in-bounding-box nil (bounding-box)
 ;;   (bounding-box-contains bounding-box (multiple-value-list (bounding-box self))))
 
-(defun colliding-with (self thing)
+(defmethod colliding-with ((self xblock) (thing xblock))
   "Return non-nil if this xblock collides with THING."
   (multiple-value-bind (top left right bottom) 
       (bounding-box thing)

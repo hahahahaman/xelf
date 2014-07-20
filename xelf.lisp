@@ -183,8 +183,8 @@ colliding-with start-region end-region make-input-accessor-forms
 persistent-variables-file combine save-variables indicator-size
 draw-indicator load-variables *block-text-colors* defblock capture
 paste-from make-input-accessor-macrolet-clause heading-direction
-defun-memo make-input-accessor-defun-forms input-reference-p phrase
-label input-block with-local-fields *default-quadtree-depth*
+drop-fail defun-memo make-input-accessor-defun-forms input-reference-p
+phrase label input-block with-local-fields *default-quadtree-depth*
 define-resource input-value *block-bold* *bold* *italic* xelf-object
 xelf-object-p direction-heading heading-direction object-p
 *block-italic* xblock after-drag-hook open-project define
