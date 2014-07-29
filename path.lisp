@@ -77,7 +77,7 @@
 		      (when (and (xelfp object)
 				 (field-value :collision-type object)
 				 (not (object-eq object (path-finder path)))
-				 (will-obstruct object (path-finder path))) 
+				 (will-obstruct object (path-finder path)) )
 			(return-from colliding object))))
 	       (prog1 nil
 		 (quadtree-map-collisions 
@@ -327,7 +327,12 @@
 	 *directions*)))
   
   ;; Now we come to the pathfinding algorithm itself. 
-  
+
+(defun address-to-waypoint (path address)
+  (destructuring-bind (row column) address
+    (list (round (column-to-x path column))
+	  (round (row-to-y path row)))))
+
 (defun find-path (path x0 y0 x1 y1)
   "Find a path from the starting point to the goal in PATH using A*.
 Returns a list of directional keywords an AI can follow to reach
@@ -409,11 +414,6 @@ the goal."
 	      ;; return nil
 	      nil)))))
     
-(defun address-to-waypoint (path address)
-  (destructuring-bind (row column) address
-    (list (round (column-to-x path column))
-	  (round (row-to-y path row)))))
-
 (defun find-path-waypoints (path x0 y0 x1 y1)
   (mapcar #'(lambda (address)
 	      (address-to-waypoint path address))
