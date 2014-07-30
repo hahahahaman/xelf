@@ -7,7 +7,7 @@
 (ql:quickload '(:lispbuilder-sdl-mixer :lispbuilder-sdl-ttf :lispbuilder-sdl-image :uuid :cl-opengl :cl-fad))
 (asdf:load-system :cypress)
 (ccl:save-application "cypress.exe" 
-		      :application-type :cli
+		      :application-type :console
 		      :clear-clos-caches t
 		      :prepend-kernel t
 		      :toplevel-function 'cypress:cypress)
