@@ -1636,8 +1636,10 @@ also the documentation for DESERIALIZE."
   (case filter
     (:linear (gl:tex-parameter :texture-2d :texture-min-filter :linear)
      (gl:tex-parameter :texture-2d :texture-mag-filter :linear))
-    (:mipmap (gl:tex-parameter :texture-2d :generate-mipmap t) 
-     (gl:tex-parameter :texture-2d :texture-min-filter :linear-mipmap-linear))
+    (:mipmap 
+     (gl:tex-parameter :texture-2d :texture-min-filter :linear-mipmap-linear)
+     (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+     (gl:tex-parameter :texture-2d :generate-mipmap t))
     (:nearest (gl:tex-parameter :texture-2d :texture-min-filter :nearest)
      (gl:tex-parameter :texture-2d :texture-mag-filter :nearest))))
 
@@ -1654,7 +1656,7 @@ also the documentation for DESERIALIZE."
       ;; set up filtering
       (use-filter filter)
       ;; set wrapping parameters
-      (gl:tex-parameter :texture-2d :texture-wrap-r wrap-r)
+      (gl:tex-parameter :texture-2d :texture-wrap-t wrap-r)
       (gl:tex-parameter :texture-2d :texture-wrap-s wrap-s)
       ;; convert image data from SDL surface to GL texture
       (sdl-base::with-pixel (pix (sdl:fp surface))
@@ -1670,6 +1672,9 @@ also the documentation for DESERIALIZE."
 			   (sdl:width surface) (sdl:height surface)
 			   0 (or source-format texture-format)
 			   :unsigned-byte (sdl-base::pixel-data pix))))
+      ;; possibly generate mipmaps
+      (when (eq :mipmap filter)
+	(gl:generate-mipmap :texture-2d))
       texture)))
 
 (defvar *textures* nil)
