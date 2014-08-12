@@ -1672,9 +1672,9 @@ also the documentation for DESERIALIZE."
 			   (sdl:width surface) (sdl:height surface)
 			   0 (or source-format texture-format)
 			   :unsigned-byte (sdl-base::pixel-data pix))))
-      ;; possibly generate mipmaps
-      (when (eq :mipmap filter)
-	(gl:generate-mipmap :texture-2d))
+      ;; ;; possibly generate mipmaps
+      ;; (when (eq :mipmap filter)
+      ;; 	(gl:generate-mipmap :texture-2d))
       texture)))
 
 (defvar *textures* nil)
