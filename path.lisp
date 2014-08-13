@@ -70,7 +70,7 @@
 	       (vright (+ border vleft (- right left)))
 	       (vbottom (+ border vtop (- bottom top))))
 	  (if 
-	   (not (within-buffer-boundaries-p (current-buffer) top left right bottom))
+	   (not (within-buffer-boundaries-p (current-buffer) vtop vleft vright vbottom))
 	   t
 	   (block colliding
 	     (flet ((check (object)
