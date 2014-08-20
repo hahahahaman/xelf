@@ -841,7 +841,8 @@ finding the next implementation after that."
   (if (symbolp form)
       (let ((name (symbol-name form)))
 	(and (> (length name) 1)
-	     (string= "%" (subseq name 0 1))
+	     (or (string= "%" (subseq name 0 1))
+		 (string= "@" (subseq name 0 1)))
 	     ;; don't catch double %%
 	     (not (string= "%" (subseq name 1 2)))))))
 
