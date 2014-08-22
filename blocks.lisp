@@ -1672,6 +1672,9 @@ The order is (TOP LEFT RIGHT BOTTOM)."
       (above-center self)
     (values x (+ y %height))))
 
+(define-method do-collision nil (thing)
+  (collide self thing))
+
 (define-method collide nil (object)
   (declare (ignore object))
   "Respond to a collision detected with OBJECT. The default implementation does nothing."

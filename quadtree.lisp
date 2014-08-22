@@ -250,7 +250,7 @@ NODE, if any."
 		    (colliding-with object thing)
 		    (not (object-eq object thing)))
 	   (with-quadtree tree
-	     (collide object thing))))
+	     (do-collision object thing))))
      tree)))
 
 (defun find-bounding-box (objects)
