@@ -5,9 +5,11 @@
       asdf:*central-registry*)
 
 ;; (ql:quickload '(:lispbuilder-sdl-mixer :lispbuilder-sdl-ttf :lispbuilder-sdl-image :uuid :cl-opengl :cl-fad))
+(push #p"~/quicklisp/local-systems/" asdf:*central-registry*)
+
 (asdf:load-system :xelf)
 
-(push #p"/home/dto/3x0ng/" asdf:*central-registry*)
+(push #p"~/quicklisp/local-systems/3x0ng/" asdf:*central-registry*)
 
 (setf sb-impl::*default-external-format* :utf-8)
 (asdf:oos 'asdf:load-op '3x0ng)
