@@ -415,6 +415,12 @@ or,
 (defvar *joystick-device-number* nil 
   "The number of the current joystick.")
 
+(defvar *joystick-b-device* nil 
+  "The SDL device id of the current joystick.")
+
+(defvar *joystick-b-device-number* nil 
+  "The number of the current joystick.")
+
 (defparameter *joystick-profiles* nil)
   ;; '(("DragonRise Inc.   Generic   USB  Joystick  " 
   ;;    :name "Generic USB Gamepad" :type :joystick
@@ -519,19 +525,21 @@ or,
 
 (defparameter *joystick-dead-zone* 6000)
 
-(defvar *joystick-axis-values* (make-array 100 :initial-element 0))
+(defvar *joystick-axis-values* 
+  (list (make-array 100 :initial-element 0)
+	(make-array 100 :initial-element 0)))
 
-(defun update-joystick-axis (axis value)
-  (setf (aref *joystick-axis-values* axis) value))
+(defun update-joystick-axis (axis value &optional (id 0))
+  (setf (aref (nth id *joystick-axis-values*) axis) value))
 
-(defun joystick-axis-raw-value (axis)
-  (aref *joystick-axis-values* axis))
+(defun joystick-axis-raw-value (axis &optional (id 0))
+  (aref (nth id *joystick-axis-values*) axis))
 
-(defun joystick-axis-pressed-p (axis) 
-  (< *joystick-dead-zone* (abs (joystick-axis-raw-value axis))))
+(defun joystick-axis-pressed-p (axis &optional (id 0))
+  (< *joystick-dead-zone* (abs (joystick-axis-raw-value axis id))))
 
-(defun joystick-axis-value (axis)
-  (/ (joystick-axis-raw-value axis)
+(defun joystick-axis-value (axis &optional (id 0))
+  (/ (joystick-axis-raw-value axis id)
      *joystick-axis-size*))
 
 (defun find-heading (x0 y0 x1 y1)
@@ -541,76 +549,87 @@ or,
 (defun opposite-heading (heading)
   (- pi heading))
 
-(defun analog-stick-pressed-p (&optional (stick (joystick-left-analog-stick)))
+(defun analog-stick-pressed-p (&optional (stick (joystick-left-analog-stick)) (id 0))
   (destructuring-bind (horizontal vertical) stick
-    (or (joystick-axis-pressed-p horizontal)
-	(joystick-axis-pressed-p vertical))))
+    (or (joystick-axis-pressed-p horizontal id)
+	(joystick-axis-pressed-p vertical id))))
 
-(defun left-analog-stick-pressed-p ()
-  (analog-stick-pressed-p (joystick-left-analog-stick)))
+(defun left-analog-stick-pressed-p (&optional (id 0))
+  (analog-stick-pressed-p (joystick-left-analog-stick) id))
 
-(defun right-analog-stick-pressed-p ()
-  (analog-stick-pressed-p (joystick-right-analog-stick)))
+(defun right-analog-stick-pressed-p (&optional (id 0))
+  (analog-stick-pressed-p (joystick-right-analog-stick) id))
 
-(defun analog-stick-heading (&optional (stick (joystick-left-analog-stick)))
+(defun analog-stick-heading (&optional (stick (joystick-left-analog-stick)) (id 0))
   (destructuring-bind (horizontal vertical) stick
-    (when (analog-stick-pressed-p stick)
+    (when (analog-stick-pressed-p stick id)
       (find-heading 0 0 
-		    (joystick-axis-raw-value horizontal)
-		    (joystick-axis-raw-value vertical)))))
+		    (joystick-axis-raw-value horizontal id)
+		    (joystick-axis-raw-value vertical id)))))
       
-(defun analog-stick-pressure (&optional (stick (joystick-left-analog-stick)))
+(defun analog-stick-pressure (&optional (stick (joystick-left-analog-stick)) (id 0))
   (destructuring-bind (horizontal vertical) stick
-    (if (or (joystick-axis-pressed-p horizontal)
-	    (joystick-axis-pressed-p vertical))
+    (if (or (joystick-axis-pressed-p horizontal id)
+	    (joystick-axis-pressed-p vertical id))
 	(/ (distance 0 0
-		     (joystick-axis-value horizontal)
-		     (joystick-axis-value vertical))
+		     (joystick-axis-value horizontal id)
+		     (joystick-axis-value vertical id))
 	   ;; scale to [0.0, 1.0]
 	   (sqrt 2))
 	0.0)))
 
-(defun left-analog-stick-heading ()
-  (analog-stick-heading (joystick-left-analog-stick)))
+(defun left-analog-stick-heading (&optional (id 0))
+  (analog-stick-heading (joystick-left-analog-stick) id))
 
-(defun right-analog-stick-heading ()
-  (analog-stick-heading (joystick-right-analog-stick)))
+(defun right-analog-stick-heading (&optional (id 0))
+  (analog-stick-heading (joystick-right-analog-stick) id))
 
-(defun left-analog-stick-pressure ()
-  (analog-stick-pressure (joystick-left-analog-stick)))
+(defun left-analog-stick-pressure (&optional (id 0))
+  (analog-stick-pressure (joystick-left-analog-stick) id))
 
-(defun right-analog-stick-pressure ()
-  (analog-stick-pressure (joystick-right-analog-stick)))
+(defun right-analog-stick-pressure (&optional (id 0))
+  (analog-stick-pressure (joystick-right-analog-stick) id))
 
 ;; Joystick buttons
 	
-(defvar *joystick-button-states* nil)
+(defvar *joystick-button-states* (list nil nil))
 
-(defun poll-joystick-button (button)
+(defun find-device (id)
+  (ecase id 
+    (0 *joystick-device*)
+    (1 *joystick-b-device*)))
+
+(defun poll-joystick-button (button &optional (id 0))
   "Return 1 if the button numbered BUTTON is pressed, otherwise 0."
-  (sdl-cffi::sdl-joystick-get-button *joystick-device* button))
+  (sdl-cffi::sdl-joystick-get-button (find-device id) button))
 
-(defun update-joystick-button (button state)
+(defun update-joystick-button (button state &optional (id 0))
   "Update the table in `*joystick-button-states*' to reflect the STATE of
 the BUTTON. STATE should be either 1 (on) or 0 (off)."
-  (setf (aref *joystick-button-states* button) state))
+  (setf (aref (nth id *joystick-button-states*) button) state))
 
-(defun joystick-button-state (button)
-  (poll-joystick-button button))
-;;  (aref *joystick-button-states* button))
+(defun joystick-button-state (button &optional (id 0))
+  (poll-joystick-button button id))
 
-(defun joystick-button-pressed-p (button)
+(defun joystick-button-pressed-p (button &optional (id 0))
   (let ((button-number (if (integerp button) 
 			   button
 			   (symbol-to-button button))))
     (when button-number 
-      (= 1 (joystick-button-state button-number)))))
+      (= 1 (joystick-button-state button-number id)))))
 
 (defun reset-joystick (&optional (device 0))
   "Re-open the joystick device and re-initialize the state."
   (setf *joystick-device* (sdl-cffi::sdl-joystick-open device))
   (setf *joystick-device-number* device)
-  (setf *joystick-button-states* (make-array 100 :initial-element nil)))
+  (setf *joystick-b-device* (sdl-cffi::sdl-joystick-open (1+ device)))
+  (setf *joystick-b-device-number* (1+ device))
+  (setf *joystick-button-states* 
+	(list (make-array 100 :initial-element nil)
+	      (make-array 100 :initial-element nil)))
+  (setf *joystick-axis-values* 
+	(list (make-array 100 :initial-element 0)
+	      (make-array 100 :initial-element 0))))
 
 (defun number-of-joysticks ()
   (sdl:num-joysticks))
@@ -885,22 +904,22 @@ display."
 					  (window-pointer-x)
 					  (window-pointer-y)
 					  button))))
-	(:joy-button-down-event (:button button :state state)
+	(:joy-button-down-event (:which which :button button :state state)
 				(send-event (make-event :raw-joystick (list button :button-down)))
 				(when (assoc button (joystick-buttons))
-				  (update-joystick-button button state)
+				  (update-joystick-button button state which)
 				  (send-event (make-event :joystick
 							  (list (button-to-symbol button) 
 								:button-down)))))
-	(:joy-button-up-event (:button button :state state)  
+	(:joy-button-up-event (:which which :button button :state state)  
 			      (send-event (make-event :raw-joystick (list button :button-up)))
 			      (when (assoc button (joystick-buttons))
-				(update-joystick-button button state)
+				(update-joystick-button button state which)
 				(send-event (make-event :joystick
 							(list (button-to-symbol button) 
 							      :button-up)))))
-	(:joy-axis-motion-event (:axis axis :value value)
-				(update-joystick-axis axis value))
+	(:joy-axis-motion-event (:which which :axis axis :value value)
+				(update-joystick-axis axis value which))
 	(:video-expose-event () (sdl:update-display))
 	(:key-down-event (:key key :mod-key mod :unicode unicode)
 			 (send-event

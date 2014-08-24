@@ -1,20 +1,17 @@
 (require 'sb-posix)
 
-(load #P"~/quicklisp/setup.lisp")
-
+;; (load #P"~/quicklisp/setup.lisp")
 (push (merge-pathnames "lib/" *default-pathname-defaults*)
       asdf:*central-registry*)
 
 ;; (ql:quickload '(:lispbuilder-sdl-mixer :lispbuilder-sdl-ttf :lispbuilder-sdl-image :uuid :cl-opengl :cl-fad))
-(push #p"~/quicklisp/local-systems/" asdf:*central-registry*)
-
 (asdf:load-system :xelf)
 
-(push #p"~/quicklisp/local-systems/3x0ng/" asdf:*central-registry*)
+(push #p"/home/dto/3x0ng/" asdf:*central-registry*)
 
 (setf sb-impl::*default-external-format* :utf-8)
 (asdf:oos 'asdf:load-op '3x0ng)
-(sb-ext:save-lisp-and-die "3x0ng.bin"
+(sb-ext:save-lisp-and-die "3x0ng.exe"
 			  :toplevel (lambda ()
 				      (sb-posix:putenv
 				       (format nil "SBCL_HOME=~A" 
