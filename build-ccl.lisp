@@ -5,8 +5,8 @@
 ;; (push #P"/home/dto/2x0ng/"
 ;;       asdf:*central-registry*)
 (ql:quickload '(:lispbuilder-sdl-mixer :lispbuilder-sdl-ttf :lispbuilder-sdl-image :uuid :cl-opengl :cl-fad))
-(asdf:load-system :cypress)
-(ccl:save-application "cypress.exe" 
+(asdf:load-system :3x0ng)
+(ccl:save-application "3x0ng.exe" 
 		      :application-type :console
 		      :clear-clos-caches t
 		      :prepend-kernel t
