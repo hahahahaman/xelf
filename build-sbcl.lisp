@@ -1,6 +1,7 @@
 (require 'sb-posix)
 
-;; (load #P"~/quicklisp/setup.lisp")
+(load #P"~/quicklisp/setup.lisp")
+
 (push (merge-pathnames "lib/" *default-pathname-defaults*)
       asdf:*central-registry*)
 
