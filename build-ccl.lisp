@@ -10,7 +10,7 @@
 		      :application-type :console
 		      :clear-clos-caches t
 		      :prepend-kernel t
-		      :toplevel-function 'cypress:cypress)
+		      :toplevel-function '3x0ng:3x0ng)
 
 
 
