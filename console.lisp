@@ -523,7 +523,7 @@ or,
 
 (defparameter *joystick-axis-size* 32768.0)
 
-(defparameter *joystick-dead-zone* 10000)
+(defparameter *joystick-dead-zone* 5000)
 
 (defvar *joystick-axis-values* 
   (list (make-array 100 :initial-element 0)
