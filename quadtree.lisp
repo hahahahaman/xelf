@@ -56,13 +56,15 @@ the object when the method is run.")
 (defun bounding-box-contains (box0 box1)
   (destructuring-bind (top0 left0 right0 bottom0) box0
     (destructuring-bind (top1 left1 right1 bottom1) box1
+      (declare (single-float top0 left0 right0 bottom0 top1 left1 right1 bottom1) 
+	       (optimize (speed 3)))
       (and (<= top0 top1)
 	   (<= left0 left1)
 	   (>= right0 right1)
 	   (>= bottom0 bottom1)))))
 
 (defun quadtree-contains (quadtree top left right bottom)
-  (declare (single-float top left right bottom))
+  (declare (single-float top left right bottom) (optimize (speed 3)))
   (and (<= (the single-float (quadtree-top quadtree)) top)
        (<= (the single-float (quadtree-left quadtree)) left)
        (>= (the single-float (quadtree-right quadtree)) right)
