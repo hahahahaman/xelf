@@ -523,7 +523,7 @@ or,
 
 (defparameter *joystick-axis-size* 32768.0)
 
-(defparameter *joystick-dead-zone* 6000)
+(defparameter *joystick-dead-zone* 10000)
 
 (defvar *joystick-axis-values* 
   (list (make-array 100 :initial-element 0)
@@ -553,6 +553,10 @@ or,
   (destructuring-bind (horizontal vertical) stick
     (or (joystick-axis-pressed-p horizontal id)
 	(joystick-axis-pressed-p vertical id))))
+    ;; (< *joystick-dead-zone*
+    ;;    (distance 0 0 
+    ;; 		 (joystick-axis-raw-value horizontal id)
+    ;; 		 (joystick-axis-raw-value vertical id)))))
 
 (defun left-analog-stick-pressed-p (&optional (id 0))
   (analog-stick-pressed-p (joystick-left-analog-stick) id))
@@ -569,8 +573,7 @@ or,
       
 (defun analog-stick-pressure (&optional (stick (joystick-left-analog-stick)) (id 0))
   (destructuring-bind (horizontal vertical) stick
-    (if (or (joystick-axis-pressed-p horizontal id)
-	    (joystick-axis-pressed-p vertical id))
+    (if (analog-stick-pressed-p stick id)
 	(/ (distance 0 0
 		     (joystick-axis-value horizontal id)
 		     (joystick-axis-value vertical id))
