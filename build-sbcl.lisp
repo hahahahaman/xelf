@@ -10,8 +10,7 @@
 (ql:quickload :xelf)
 (setf sb-impl::*default-external-format* :utf-8)
 (asdf:oos 'asdf:load-op '3x0ng)
-(sb-ext:save-lisp-and-die "3x0ng.exe"
-			  :application-type :gui
+(sb-ext:save-lisp-and-die "3x0ng.bin"
 			  :toplevel (lambda ()
 				      (sb-posix:putenv
 				       (format nil "SBCL_HOME=~A" 
