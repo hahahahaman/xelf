@@ -909,18 +909,16 @@ display."
 					  button))))
 	(:joy-button-down-event (:which which :button button :state state)
 				(send-event (make-event :raw-joystick (list button :button-down)))
-				(when (assoc button (joystick-buttons))
-				  (update-joystick-button button state which)
-				  (send-event (make-event :joystick
-							  (list (button-to-symbol button) 
-								:button-down)))))
-	(:joy-button-up-event (:which which :button button :state state)  
-			      (send-event (make-event :raw-joystick (list button :button-up)))
-			      (when (assoc button (joystick-buttons))
 				(update-joystick-button button state which)
 				(send-event (make-event :joystick
-							(list (button-to-symbol button) 
-							      :button-up)))))
+							(list which button
+							      :button-down))))
+	(:joy-button-up-event (:which which :button button :state state)  
+			      (send-event (make-event :raw-joystick (list button :button-up)))
+			      (update-joystick-button button state which)
+			      (send-event (make-event :joystick
+						      (list which button
+							    :button-up))))
 	(:joy-axis-motion-event (:which which :axis axis :value value)
 				(update-joystick-axis axis value which))
 	(:video-expose-event () (sdl:update-display))
