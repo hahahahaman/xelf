@@ -1,3 +1,3 @@
 #!/bin/bash
-sbcl --load build-unix.lisp
+sbcl --load build-sbcl.lisp
 wine sbcl --load build-wine.lisp
