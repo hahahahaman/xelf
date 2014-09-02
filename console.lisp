@@ -2728,7 +2728,6 @@ of the music."
   (clear-text-image-cache)
   (clear-cached-font-metrics)
   (delete-all-textures)
-  (reset-forth-interpreter)
   (sdl:init-sdl :video t :audio t :joystick t)
   ;; don't overwrite paths from executable toplevel code
   (when (null *project-directories*)

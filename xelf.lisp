@@ -35,7 +35,7 @@
   (:export null-block *frequency* *output-chunksize* *output-channels*
 cfloat halt-sample *dt* *copyright-notice* *author* defentry
 make-paragraph make-sentence without-style-warnings find-path
-create-path find-path-waypoints *font-texture-scale*
+create-path find-path-waypoints *font-texture-scale* scale-bounding-box
 *message-hook-functions* exit-xelf add-to-list shell-open-p z-sort
 modify-joystick-profile defproject start stop selection cut copy paste
 paste-here clear-clipboard copy-to-clipboard paste-at-pointer

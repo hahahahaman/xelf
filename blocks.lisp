@@ -1485,9 +1485,9 @@ The following xblock fields will control sprite drawing:
 		   (+ y height dash)
 		   :color color))))
 
-(define-method draw-background nil (&key color)
-  (with-fields (x y width height) self
-    (draw-patch self x y (+ x width) (+ y height) :color color)))
+;; (define-method draw-background nil (&key color)
+;;   (with-fields (x y width height) self
+;;     (draw-patch self x y (+ x width) (+ y height) :color color)))
 
 (define-method draw-ghost nil ()
   (with-fields (x y width height) self
