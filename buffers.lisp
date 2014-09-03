@@ -292,8 +292,8 @@
 (define-method window-bounding-box buffer ()
   (values (cfloat %window-y)
 	  (cfloat %window-x)
-	  (cfloat (+ %window-x *gl-screen-width*))
-	  (cfloat (+ %window-y *gl-screen-height*))))
+	  (cfloat (+ %window-x *nominal-screen-width*))
+	  (cfloat (+ %window-y *nominal-screen-height*))))
 
 ;; (define-method bounding-box buffer ()
 ;;   (values (cfloat 0) (cfloat 0)
