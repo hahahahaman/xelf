@@ -26,11 +26,7 @@
 
 (defvar *quadtree* nil)
 
-(defvar *buffer* nil
-"The current buffer object. Only one may be active at a time. See also
-buffers.lisp. Sprites and cells are free to send messages to `*buffer*'
-at any time, because `*buffer*' is always bound to the buffer containing
-the object when the method is run.")
+(defvar *buffer* nil)
 
 (defmacro with-quadtree (quadtree &rest body)
   `(let* ((*quadtree* ,quadtree))
@@ -44,10 +40,6 @@ the object when the method is run.")
   objects level
   top left right bottom
   southwest northeast northwest southeast)
-
-(defmethod print-object ((tree xelf::quadtree) stream)
-  (format stream "#<XELF:QUADTREE count: ~S>"
-	  (length (quadtree-objects tree))))
 
 (defun leafp (node)
   ;; testing any quadrant will suffice
@@ -88,25 +80,21 @@ the object when the method is run.")
 	 (and (<= left right) (<= top bottom)))))
 
 (defun northeast-quadrant (bounding-box)
-;  (assert (valid-bounding-box bounding-box))
   (destructuring-bind (top left right bottom) bounding-box
     (list top (cfloat (/ (+ left right) 2))
 	  right (cfloat (/ (+ top bottom) 2)))))
 
 (defun southeast-quadrant (bounding-box)
-;  (assert (valid-bounding-box bounding-box))
   (destructuring-bind (top left right bottom) bounding-box
     (list (cfloat (/ (+ top bottom) 2)) (cfloat (/ (+ left right) 2))
 	  right bottom)))
 
 (defun northwest-quadrant (bounding-box)
-;  (assert (valid-bounding-box bounding-box))
   (destructuring-bind (top left right bottom) bounding-box
     (list top left
 	  (cfloat (/ (+ left right) 2)) (cfloat (/ (+ top bottom) 2)))))
 
 (defun southwest-quadrant (bounding-box)
-;  (assert (valid-bounding-box bounding-box))
   (destructuring-bind (top left right bottom) bounding-box
     (list (cfloat (/ (+ top bottom) 2)) left
 	  (cfloat (/ (+ left right) 2)) bottom)))
@@ -122,8 +110,6 @@ the object when the method is run.")
     (funcall processor node)))
 
 (defun build-quadtree (bounding-box0 &optional (depth *default-quadtree-depth*))
-  ;; (assert (plusp depth))
-  ;; (assert (valid-bounding-box bounding-box0))
   (let ((bounding-box (mapcar #'cfloat bounding-box0)))
     (destructuring-bind (top left right bottom) bounding-box
       (decf depth)
@@ -135,42 +121,9 @@ the object when the method is run.")
 			 :southwest (build-quadtree (southwest-quadrant bounding-box) depth)
 			 :southeast (build-quadtree (southeast-quadrant bounding-box) depth))))))
 
-(defun rebuild-node (node top left right bottom)
-  (when node
-    (prog1 node
-      (setf (quadtree-top node) (cfloat top))
-      (setf (quadtree-left node) (cfloat left))
-      (setf (quadtree-right node) (cfloat right))
-      (setf (quadtree-bottom node) (cfloat bottom))
-      (setf (quadtree-objects node) nil)
-      (rebuild-node (quadtree-northeast node)
-		    top (cfloat (/ (+ left right) 2))
-		    right (cfloat (/ (+ top bottom) 2)))
-      (rebuild-node (quadtree-southeast node)
-		    (cfloat (/ (+ top bottom) 2)) (cfloat (/ (+ left right) 2))
-		    right bottom)
-      (rebuild-node (quadtree-northwest node)
-		    top left
-		    (cfloat (/ (+ left right) 2)) (cfloat (/ (+ top bottom) 2)))
-      (rebuild-node (quadtree-southwest node)
-		    (cfloat (/ (+ top bottom) 2)) left
-		    (cfloat (/ (+ left right) 2)) bottom))))
-
-(defun rebuild-quadtree (bounding-box &optional depth)
-  (destructuring-bind (top left right bottom) bounding-box
-    (setf *cached-quadtree*
-	  (rebuild-node (or *cached-quadtree* 
-			    (build-quadtree bounding-box depth))
-			top left right bottom))))
-
 (defun quadtree-search (top left right bottom &optional (node *quadtree*))
   "Return the smallest quadrant enclosing TOP LEFT RIGHT BOTTOM at or below
 NODE, if any."
-  ;; (assert (quadtree-p node))
-  ;; (assert (valid-top left right bottom top left right bottom))
-  ;; (message "~A ~A Searching quadrant ~S for bounding box ~S" 
-  ;; 	   *quadtree-depth* (make-string (1+ *quadtree-depth*) :initial-element (character "."))
-  ;; 	   (quadtree-top left right bottom node) top left right bottom)
   (when (quadtree-contains node top left right bottom)
     ;; ok, it's in the overall bounding-box.
     (if (leafp node)
@@ -191,36 +144,20 @@ NODE, if any."
 	  (multiple-value-bind (top left right bottom) (bounding-box (find-object object))
 	    (quadtree-search top left right bottom tree))))
     (let ((node (or node0 tree)))
-      ;; (message "Inserting ~S ~S"
-      ;; 	       (get-some-object-name object) 
-      ;; 	       (object-address-string object))
-      ;; (assert (not (find (find-object object)
-      ;; 			 (quadtree-objects node)
-      ;; 			 :test 'eq)))
       (pushnew (find-object object)
 	       (quadtree-objects node)
 	       :test 'eq)
       ;; save pointer to node so we can avoid searching when it's time
       ;; to delete (i.e. move) the object later.
       (xelf:set-field-value :quadtree-node object node))))
-      ;; (assert (find (find-object object)
-      ;; 		    (quadtree-objects node)
-      ;; 		    :test 'eq)))))
 
 (defmethod quadtree-delete ((object0 xelf-object) &optional (tree *quadtree*))
   (let ((object (find-object object0)))
     ;; grab the cached quadtree node
     (let ((node (or (field-value :quadtree-node object) tree)))
-      ;; (assert node)
-      ;; (assert (find object
-      ;; 		    (quadtree-objects node)
-      ;; 		    :test 'eq))
       (setf (quadtree-objects node)
 	    (delete object (quadtree-objects node) :test 'eq))
       (set-field-value :quadtree-node object nil))))
-      ;; (assert (not (find object
-      ;; 			 (quadtree-objects node)
-      ;; 			 :test 'eq))))))
 
 (defmethod quadtree-insert-maybe ((object xelf-object) &optional (tree *quadtree*))
   (when tree
@@ -231,8 +168,6 @@ NODE, if any."
     (quadtree-delete object tree)))
 
 (defun quadtree-map-collisions (top left right bottom processor &optional (tree *quadtree*))
-  ;; (assert (functionp processor))
-  ;; (assert (valid-bounding-box bounding-box))
   (quadtree-process
    top left right bottom
    #'(lambda (node)
@@ -257,7 +192,6 @@ NODE, if any."
 
 (defun find-bounding-box (objects)
   ;; calculate the bounding box of a list of objects
-  ;; (assert (not (null objects)))
   (labels ((left (thing) (field-value :x thing))
 	   (right (thing) (+ (field-value :x thing)
 			     (field-value :width thing)))
@@ -275,7 +209,6 @@ NODE, if any."
 		   (list set)
 		   (hash-table (loop for object being the hash-keys in set collect object)))))
     (dolist (object objects)
-;      (message "Filling ~S into quadtree" object)
       (set-field-value :quatree-node object nil)
       (quadtree-insert object quadtree))))
 
