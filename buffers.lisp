@@ -751,40 +751,40 @@ slowdown. See also quadtree.lisp")
 
 ;;; The Program is an optional layer of objects on top of the buffer
 
-(define-method add-shell-maybe buffer (&optional force)
-  (when (or force (null *shell*))
-    (setf *shell* 
-	  (new 'shell))))
+;; (define-method add-shell-maybe buffer (&optional force)
+;;   (when (or force (null *shell*))
+;;     (setf *shell* 
+;; 	  (new 'shell))))
 
-(define-method enter-shell buffer ()
-  (when (not *shell-open-p*)
-    (add-shell-maybe self)
-    (setf %last-focus %focused-block)
-    ;; (focus-on self (shell-prompt) :clear-selection nil)
-    (when (null *shell-open-p*) (setf %was-key-repeat-p (key-repeat-p)))
-    (setf *shell-open-p* t)
-    (enable-key-repeat)))
+;; (define-method enter-shell buffer ()
+;;   (when (not *shell-open-p*)
+;;     (add-shell-maybe self)
+;;     (setf %last-focus %focused-block)
+;;     ;; (focus-on self (shell-prompt) :clear-selection nil)
+;;     (when (null *shell-open-p*) (setf %was-key-repeat-p (key-repeat-p)))
+;;     (setf *shell-open-p* t)
+;;     (enable-key-repeat)))
   
-(defun shell-open-p () *shell-open-p*)
+;; (defun shell-open-p () *shell-open-p*)
 
-(define-method command-prompt buffer () 
-  (enter-shell self)
-  (focus-on self (shell-prompt) :clear-selection nil))
+;; (define-method command-prompt buffer () 
+;;   (enter-shell self)
+;;   (focus-on self (shell-prompt) :clear-selection nil))
 
-(define-method exit-shell buffer ()
-  (when *shell-open-p*
-    ;; (add-shell-maybe self)
-    (setf *shell-open-p* nil)
-    (focus-on self %last-focus :clear-selection nil)
-    (setf %last-focus nil)
-    (unless %was-key-repeat-p 
-      (disable-key-repeat))
-    (setf %was-key-repeat-p nil)))
+;; (define-method exit-shell buffer ()
+;;   (when *shell-open-p*
+;;     ;; (add-shell-maybe self)
+;;     (setf *shell-open-p* nil)
+;;     (focus-on self %last-focus :clear-selection nil)
+;;     (setf %last-focus nil)
+;;     (unless %was-key-repeat-p 
+;;       (disable-key-repeat))
+;;     (setf %was-key-repeat-p nil)))
 
-(define-method toggle-shell buffer ()
-  (if *shell-open-p* 
-      (exit-shell self)
-      (enter-shell self)))
+;; (define-method toggle-shell buffer ()
+;;   (if *shell-open-p* 
+;;       (exit-shell self)
+;;       (enter-shell self)))
 
 (define-method grab-focus buffer ())
 
@@ -917,7 +917,6 @@ slowdown. See also quadtree.lisp")
     (mapc #'layout %inputs)))
   
 (define-method handle-event buffer (event)
-  (clear-deleted-program-objects self)
   (with-field-values (cursor quadtree focused-block) self
     (with-buffer self
       (or (call-next-method self event)
@@ -926,7 +925,6 @@ slowdown. See also quadtree.lisp")
 	      (prog1 t 
 		(when thing 
 		  (with-quadtree quadtree
-		    (handle-event (find-object thing) event)
 		    (clear-deleted-program-objects self)
 		    ))))))))
 
@@ -959,8 +957,6 @@ block found, or nil if none is found."
 	(let* ((object-p nil)
 	       (result 
 		 (or 
-		  (when (and *shell-open-p* (xelfp *shell*))
-		    (try *shell*))
 		  (let ((parent 
 			  (find-if #'try 
 				   %inputs

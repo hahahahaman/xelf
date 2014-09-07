@@ -27,14 +27,6 @@
 
 (in-package :xelf)
 
-;; (defmethod initialize-fields ((thing xelf-object)) nil)
-;; (defmethod initialize ((thing xelf-object) &rest args) nil)
-;; (defmethod damage ((thing xelf-object) ignore))
-
-;; (defmethod move-to ((thing xelf-object) x y &optional z) nil)
-;; (defmethod destroy ((thing xelf-object)))
-;; (defmethod bounding-box ((thing xelf-object)))
-
 (defun cfloat (f) (coerce f 'single-float))
 
 (defun-memo pretty-string (thing)
