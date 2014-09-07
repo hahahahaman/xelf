@@ -1,3 +1,9 @@
+* TODO normalize all names to -p predicates, add-object not drop-object
+* TODO replace WITH-FIELDS
 * TODO start fresh and export only needed symbols
+* TODO DEFPROJECT KILL-BUFFER
+* TODO fix coroutine LATER
 * TODO document all exported symbols
-* TODO rename XBLOCK
+** TODO document console.lisp and math/utils/quadtree/path
+** TODO rename XBLOCK and document blocks.lisp
+** TODO document BUFFER

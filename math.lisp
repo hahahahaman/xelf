@@ -27,6 +27,7 @@
 ;;; Probability
 
 (defmacro percent-of-time (percent &body body)
+  "Evaluate the BODY forms PERCENT percent of the time."
   `(when (< (random 100.0) ,percent)
      ,@body))
 
@@ -101,6 +102,7 @@ DIRECTION."
        *directions*))
 
 (defun direction-degrees (direction)
+  "Return the angle (in degrees) which DIRECTION points."
   (ecase direction
     (:up -90)
     (:down 90)
@@ -112,6 +114,7 @@ DIRECTION."
     (:downleft 135)))
 
 (defun direction-heading (direction)
+  "Return the angle (in radians) of the keyword DIRECTION."
   (radian-angle (direction-degrees direction)))
    
 (defun heading-direction (heading)
@@ -121,14 +124,6 @@ DIRECTION."
 		     (/ pi 7))
   	     direction)))
     (some #'pointing *directions*)))
-
-
-  ;; (flet ((pointing (direction)
-  ;; 	   (when (< (abs (- heading
-  ;; 			    (direction-heading direction)))
-  ;; 		    (radian-angle 18))
-  ;; 	     direction)))
-  ;;   (some #'pointing *directions*)))
 
 (defun step-in-direction (x y direction &optional (n 1))
   "Return the point X Y moved by n squares in DIRECTION."
@@ -144,7 +139,7 @@ DIRECTION."
     (:downleft (values (- x n) (+ y n)))))
 
 (defun direction-to (x1 y1 x2 y2)
-  "Return general direction of the ray from Y1,X1 to Y2,X2."
+  "Return the heading (in radians) of the ray from Y1,X1 to Y2,X2."
   (if (or (some #'null (list y1 x1 y2 x2))
 	  (and (= y1 y2) (= x1 x2)))
       :here
@@ -303,53 +298,6 @@ It's an ugly hack, but it helps reduce artifacts."
     (dotimes (n (abs diff))
       (funcall trace-function row (+ x1 (* n fact))))))
 
-;; (defun trace-line (trace-function x0 y0 x1 y1)
-;;   "Trace a line between X0,Y0 and X1,Y1.
-;; calling TRACE-FUNCTION at each point of the line."
-;;   ;; analyze coordinates and prepare them for bresenham's
-;;   (let ((steep (> (abs (- y1 y0))
-;; 		  (abs (- x1 x0)))))
-;;     ;; reflect steep lines through line y=x
-;;     (when steep
-;;       (rotatef x0 y0)
-;;       (rotatef x1 y1))
-;;     ;; swap points if line is backwards
-;;     (let ((flipped (> x0 x1)))
-;;       (when flipped
-;; 	(rotatef x0 x1)
-;; 	(rotatef y0 y1))
-;;       (values flipped 
-;; 	(if (= x1 x0)
-;; 	    ;; just trace a vertical line.
-;; 	    (if flipped
-;; 		(trace-column trace-function x1 y0 y1)
-;; 		(trace-column trace-function x1 y1 y0))
-;; 	    ;; ok, use bresenham's
-;; 	    (let* ((delta-x (- x1 x0))
-;; 		   (delta-y (abs (- y1 y0)))
-;; 		   (err 0.0)
-;; 		   (delta-err (/ (float delta-y) (float delta-x)))
-;; 		   (y y0)
-;; 		   (x x0)
-;; 		   (step-y (if (< y0 y1) 1 -1)))
-;; 	      ;; main loop
-;; 	      (block tracing
-;; 		(loop do
-;; 		  ;; call the supplied trace function.
-;; 		  ;; note that trace functions get args in order (row column).
-;; 		  ;; terminate with result = nil if it returns non-nil.
-;; 		  (when (if steep
-;; 			    (funcall trace-function x y)
-;; 			    (funcall trace-function y x))
-;; 		    (return-from tracing t))
-;; 		  (incf err delta-err)
-;; 		  (when (>= err 0.5)
-;; 		    (incf y step-y)
-;; 		    (decf err 1.0))
-;; 		  ;; for next iteration
-;; 		  (incf x)
-;; 		      while (= x x1)))))))))
-
 (defun trace-line (trace-function x0 y0 x1 y1)
   "Trace a line between X0,Y0 and X1,Y1.
 calling TRACE-FUNCTION at each point of the line."
@@ -479,6 +427,7 @@ rectangles, or NIL if they would be smaller than one pixel."
 	  (list R1 R2 R3 R4)))))
 
 (defun render-plasma (height width &key (graininess 1.0) array)
+  "Return a rectangle subdivision noise field with WIDTH,HEIGHT."
   (let* ((grid (or array (make-array (list height width))))
 	 (A (list 0 0))
 	 (B (list 0 (- height 1)))

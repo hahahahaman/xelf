@@ -1493,7 +1493,7 @@ The following xblock fields will control sprite drawing:
 (defparameter *socket-width* (* 18 *dash*))
 
 (define-method fancy-format-expression nil (expression)
-  (assert (not (object-p expression)))
+  (assert (not (xelf::object-p expression)))
   (string-downcase
    (typecase expression
      (symbol
@@ -1501,7 +1501,7 @@ The following xblock fields will control sprite drawing:
      (otherwise (format nil "~s" expression)))))
 
 (defun expression-width (expression &optional (font *font*))
-  (if (xelf:object-p expression)
+  (if (xelf::object-p expression)
       *socket-width*
       (font-text-width (fancy-format-expression expression) font)))
 
@@ -1664,7 +1664,7 @@ The order is (TOP LEFT RIGHT BOTTOM)."
       (above-center self)
     (values x (+ y %height))))
 
-(define-method do-collision nil (thing)
+(define-method handle-collision nil (thing)
   (collide self thing))
 
 (define-method collide nil (object)
@@ -1686,16 +1686,16 @@ The order is (TOP LEFT RIGHT BOTTOM)."
 	;; is left to right of other right?
 	(<= (+ o-left o-width) x))))
 
-(define-method touching-point nil (x y)
+(define-method touching-point-p nil (x y)
   (within-extents x y %x %y (+ %x %width) (+ %y %height)))
 
-(define-method colliding-with-rectangle nil (o-top o-left o-width o-height)
+(define-method colliding-with-rectangle-p nil (o-top o-left o-width o-height)
   ;; you must pass arguments in Y X order since this is TOP then LEFT
   (with-field-values (x y width height) self
     (point-in-rectangle-p (cfloat x) (cfloat y) (cfloat width) (cfloat height) 
 			  (cfloat o-top) (cfloat o-left) (cfloat o-width) (cfloat o-height))))
 
-(defun colliding-with-bounding-box (self top left right bottom)
+(defun colliding-with-bounding-box-p (self top left right bottom)
   ;; you must pass arguments in Y X order since this is TOP then LEFT
   (with-field-values (x y width height) self
     (when (and width height)

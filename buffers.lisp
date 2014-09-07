@@ -20,7 +20,7 @@
 
 (in-package :xelf)
 
-(defparameter *combine-buffers-destructively* t)
+(defparameter *compose-buffers-destructively* t)
 
 (defblock buffer
   (name :initform nil)
@@ -185,7 +185,7 @@
 		   (setf z (max z (field-value :z (find-object object))))))
 	z)))
 
-(define-method has-object buffer (thing)
+(define-method has-object-p buffer (thing)
   (with-local-fields
     (gethash (find-uuid thing) %objects)))
 
@@ -388,7 +388,6 @@
 	(after-add-hook object)))))
       
 (define-method remove-object buffer (object)
-  (destroy-halo object)
   (with-buffer self (quadtree-delete-maybe object))
   (remhash (the simple-string (find-uuid object)) %objects))
 
@@ -400,11 +399,7 @@
       (unplug-from-parent object))))
 
 (define-method drop-object buffer (object &optional x y z)
-  (with-quadtree (field-value :quadtree self)
-    (add-object self (find-object object))
-    (when (and (numberp x) (numberp y))
-      (move-to object x y (or z 1)))
-    (after-drop-hook (find-object object))))
+  (add-object self (find-object object)))
 
 (define-method finish-drag nil ())
 
@@ -598,7 +593,7 @@ slowdown. See also quadtree.lisp")
 
 ;;; Algebraic operations on buffers and their contents
 
-(defvar *buffer-prototype* 'xelf:buffer)
+(defvar *buffer-prototype* 'xelf::buffer)
 
 (defmacro with-buffer-prototype (buffer &rest body)
   `(let ((*buffer-prototype* (find-super ,buffer)))
@@ -656,7 +651,7 @@ slowdown. See also quadtree.lisp")
     (setf %quadtree nil)
     (call-next-method self)))
 
-(defun combine (buffer1 buffer2)
+(defun compose (buffer1 buffer2)
   (with-new-buffer 
     (when (and buffer1 buffer2)
       (let ((all-objects (nconc (get-objects buffer1)
@@ -694,25 +689,25 @@ slowdown. See also quadtree.lisp")
 	(declare (ignore top bottom))
 	(- right left))))
   
-(defun arrange-below (&optional buffer1 buffer2)
+(defun compose-below (&optional buffer1 buffer2)
   (when (and buffer1 buffer2)
-    (combine buffer1
+    (compose buffer1
 	     (translate buffer2
 			0 
 			(field-value :height buffer1)))))
 
-(defun arrange-beside (&optional buffer1 buffer2)
+(defun compose-beside (&optional buffer1 buffer2)
   (when (and buffer1 buffer2)
-    (combine buffer1 
+    (compose buffer1 
 	     (translate buffer2
 			(field-value :width buffer1)
 			0))))
 
 (defun stack-vertically (&rest buffers)
-  (reduce #'arrange-below buffers :initial-value (with-new-buffer)))
+  (reduce #'compose-below buffers :initial-value (with-new-buffer)))
 
 (defun stack-horizontally (&rest buffers)
-  (reduce #'arrange-beside buffers :initial-value (with-new-buffer)))
+  (reduce #'compose-beside buffers :initial-value (with-new-buffer)))
 
 (define-method flip-horizontally buffer ()
   (let ((objects (get-objects self)))

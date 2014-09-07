@@ -32,161 +32,369 @@
 (defpackage :xelf
     (:documentation "A 2d game engine in Common Lisp.")
   (:use :common-lisp) 
-  (:export null-block *frequency* *output-chunksize* *output-channels*
-cfloat halt-sample *dt* *copyright-notice* *author* defentry
-make-paragraph make-sentence without-style-warnings find-path
-create-path find-path-waypoints *font-texture-scale* scale-bounding-box
-*message-hook-functions* exit-xelf add-to-list shell-open-p z-sort
-modify-joystick-profile defproject start stop selection cut copy paste
-paste-here clear-clipboard copy-to-clipboard paste-at-pointer
-at-next-update *next-update-hook* eval-in-emacs autoload
-*already-serialized* browse back selected-object bounding-box-contains
-*preload-resources* preload-resources *always-show-sidebar*
-*preload-images* *preload-samples* prototype-variable-name
-*update-function* kill-buffer *target* toggle-play *blocks* shut-down
-later later-at toggle-glass glass-show glass-hide glass-show-at
-later-when start-up seconds->frames keyboard-held-p keyboard-pressed-p
-holding-control transform-window *scale-output-to-window*
-keyboard-released-p *edit* with-font *font* find-heading
-keyboard-time-in-current-state *current-directory* current-directory
-pretty-string ugly-symbol *pointer-x* *pointer-y* is-joystick-event
-*self* is-raw-joystick-event keyboard-time-in-previous-state *updates*
-keyboard-down-p *buffers* keyboard-keys-down keyboard-modifier-down-p
-find-buffer find-buffer *socket-size* keyboard-modifiers
-draw-filled-circle draw-aa-circle get-keys make-block add-buffer
-find-buffer add-block remove-block with-quadtree *initialization-hook*
-hit-blocks quadtree-delete add-resources quadtree-insert
-build-quadtree quadtree-collide quadtree-show *quadtree*
-*quadtree-depth* split-string-on-lines message with-session
-start-session *prompt-sweden-keybindings* *prompt-qwerty-keybindings*
-*screen-width* transform-method-body roll-under initialize-colors
-*style* load-project-image create-project-image *standard-categories*
-*left-turn* bind-event *right-turn* left-turn right-turn roll
-bind-event-to-method *colors* enable-key-repeat disable-key-repeat
-get-color define-method *font* field-value set-field-value
-object-fields dispatch-event *user-init-file-name* distance
-icon-resource icon-image *directions* *opposites* *pending-resources*
-with-project project-orthographically project-with-perspective
-open-viewport find-resource-property compose-blank-fields font-width
-font-height find-object *windows* edit create xelf
-transform-field-reference defblock *screen-height*
-formatted-line-width find-buffer *clipboard* formatted-line-height
-formatted-string-height formatted-string-width get-color create-image
-draw-image xelf edit define-prototype has-field *target* with-target
-define-buffer set-field-options *user-joystick-profile* paste-into
-*garbage-buffers* field-option-value index-resource index-all-images
-index-all-samples *default-joystick-profile* joystick-profile visit
-draw-textured-rectangle-* find-project-path index-project image-height
-image-width load-image-resource load-lisp-resource *executable*
-*combine-buffers-destructively* *screen-height* cursor *screen-width*
-xelfp *nominal-screen-width* *nominal-screen-height* *gl-screen-width*
-*gl-screen-height* *message-function* dash holding-shift
-get-button-index message-to-standard-output *cached-quadtree*
-rebuild-quadtree rebuild-node reset-message-function
-*make-prototype-id-package* lturn rturn ticks-per-beat radian-angle
-draw-textured-rectangle default-project-directories
-*resource-handlers* load-resource find-resource find-resource-object
-*colors* *buffer* make-directory-maybe load-user-init-file
-*project-directories* resource-to-plist *osx* *linux* make-resource
-make-object-resource make-event *blocks* bind-event-to-text-insertion
-*user-projects-directory* make-field-initializer clone
-number-of-joysticks make-field-initializer-body
-make-key-modifier-symbol make-key-string normalize-event make-keyword
-make-object queue-head queue-max queue-count *sender*
-field-reference-p null-next object-eq *x11-color-data* object-name
-object-parent send send-super send-queue self opposite-direction
-opposite-heading object-address-string object step-in-direction
-define-resource direction-to plasma-rect subdivide-rect render-plasma
-add-hook run-hook queue-tail make-resource-link save-resource
-on-screen-p save-project-image *system* *defined-resources*
-save-project save-everything with-input-values with-inputs select-all
-*export-formats* clear-selection export-archive *use-texture-blending*
-defresource export-application paste-as-new-buffer
-*default-texture-filter* export-project make-queue queue unqueue
-*font-texture-filter* queue-message queued-messages-p unqueue-message
-send-queue field-value random-direction random-choose *resources*
-load-font-resource save-object-resource initialize%super
-draw-string-solid read-box initialize-resource-table percent-of-time
-render-formatted-paragraph make-formatted-string draw-string-shaded
-set-blending-mode render-formatted-string render-formatted-line
-resource font-text-width write-sexp-to-file with-message-sender
-*message-sender* read-sexp-from-file with-fields with-field-values
-write-blx *grammar* one-of left-hand-side right-hand-side expansions
-generate send-event-to-blocks play-music halt-music seek-music
-play-project *joystick-mapping* play initialize-sound
-*generic-joystick-mapping* *joystick-button-symbols*
-draw-resource-image *event-handler-function* *use-sound* midpoint
-send-event self get-some-object-name
-transform-declaration-field-descriptor no-such-field
-find-projects-in-directory goal directory-is-project-p
-find-directories find-all-projects *project* transform-tree
-*after-startup-hook* draw-line operation-symbol message-symbol
-play-sample set-music-volume draw-pixel *user-keyboard-layout*
-*fullscreen* draw-circle set-field-option-value load-project
-field-options current-buffer *frame-rate* set-resource-system-p
-next-method *blx-file-extension* *project* *project-path*
-*window-title* *window-position* restartably *message-logging* shell
-window-pointer-x window-pointer-y use-filter set-blending-mode pushf
-popf define-word forget-word forget-all-words execute-word execute
-execute-string update-parameters joystick-axis-pressed-p
-joystick-axis-value joystick-axis-raw-value analog-stick-heading
-find-heading analog-stick-pressure evalf forth *joystick-axis-size*
-*joystick-axis-dead-zone* *event-hook* left-analog-stick-heading
-left-analog-stick-pressure *message-history* index-pending-resources
-right-analog-stick-heading joystick-button-pressed-p
-analog-stick-pressed-p left-analog-stick-pressed-p
-right-analog-stick-pressed-p right-analog-stick-pressure
-initialize-console joystick-axis-value poll-joystick-button
-joystick-button-state reset-joystick *device-profiles*
-*joystick-device* *joystick-device-number* button-to-symbol
-symbol-to-button find-device-profile set-screen-width *play-args*
-set-screen-height genseq save-objects enable-timer save-buffer
-load-buffer draw-box *resizable* *resize-hook* draw-rectangle cursorp
-switch-to-buffer *after-load-project-hook* *mission* mission-variable
-find-bounding-box combine stack-vertically set-mission-variable
-horizontal-extent vertical-extent flip-horizontally flip-vertically
-mirror-horizontally mirror-vertically buffer with-mission-locals
-with-empty-buffer define-turtle stack-horizontally *background-color*
-combine-beside combine-below get-ticks *block-font* quit reset
-seek-music make-keyword object field-value make-queue find-parent
-set-field-value find-super *font* set-field-options field-options
-field-documentation set-field-option-value field-option-value
-*lookup-failure* no-such-field has-field has-method send send-queue
-send-super serialize deserialize initialize-method-cache
-*send-super-depth* initialize-documentation-tables null-parent queue
-unqueue empty-queue *message-queue* queue-message make-non-keyword
-with-fields queue-count queue-head method-documentation
-set-method-documentation method-arglist method-arglist-for-swank
-set-method-arglist queued-messages-p with-field-values with-fields-ex
-unqueue-message unqueue-and-send-message with-message-queue
-message-symbol operation-symbol *sender* message-reader transform-tree
-field-reference-p transform-field-reference transform-method-body
-object-parent object-name object-fields define-method
-*joystick-dead-zone* define-prototype new object-p self percent-gray
-percent-grey *indicators* find-indicator-texture draw-indicator
-font-text-width transform-declaration-field-descriptor is-a
-compose-blank-fields make-field-initializer initialize pause play
-*image-opacity* rewind stop initialize-prototypes initialize-xelf
-load-project update-future object-address-string draw-string make-tree
-draw-string-blended make-menu find-text-image make-text-image
-find-texture *default-super* clear-text-image-cache *token-types* text
-direction-heading direction-degrees verify *serif*
-*use-antialiased-text* *sans* *monospace* toggle-debug
-*debug-on-error* *block-categories* *block-colors* input paste
-arrange-beside arrange-below load-variable-resource translate
-save-variable-resource window-x window-y *persistent-variables*
-with-new-buffer with-border with-blank-buffer with-buffer-prototype
-with-buffer remove-trailing-space *buffer-prototype* step-coordinates
-*default-frame-rate* make-field-accessor-forms save-excursion
-colliding-with start-region end-region make-input-accessor-forms
-*persistent-variables-file-name* duplicate will-accept
-persistent-variables-file combine save-variables indicator-size
-draw-indicator load-variables *block-text-colors* defblock capture
-paste-from make-input-accessor-macrolet-clause heading-direction
-drop-fail defun-memo make-input-accessor-defun-forms input-reference-p
-phrase label input-block with-local-fields *default-quadtree-depth*
-define-resource input-value *block-bold* *bold* *italic* xelf-object
-xelf-object-p direction-heading heading-direction object-p
-*block-italic* xblock after-drag-hook open-project define
-colliding-with-bounding-box define-block-macro heading-degrees))
+  (:export 
+*after-load-project-hook*
+*after-startup-hook*
+*author*
+*background-color*
+*bold*
+*buffer*
+*buffers*
+*cached-quadtree*
+*colors*
+*copyright-notice*
+*current-directory*
+*debug-on-error*
+*default-frame-rate*
+*default-joystick-profile*
+*default-quadtree-depth*
+*default-texture-filter*
+*directions*
+*event-handler-function*
+*event-hook*
+*executable*
+*export-formats*
+*font-texture-filter*
+*font-texture-scale*
+*frame-rate*
+*frequency* 
+*fullscreen*
+*generic-joystick-mapping*
+*gl-screen-height*
+*gl-screen-width*
+*italic*
+*joystick-axis-dead-zone*
+*joystick-axis-size*
+*joystick-button-symbols*
+*joystick-dead-zone*
+*joystick-device*
+*joystick-device-number*
+*joystick-mapping*
+*linux*
+*message-function*
+*message-history*
+*message-hook-functions*
+*message-logging*
+*message-queue*
+*monospace*
+*next-update-hook*
+*nominal-screen-height*
+*nominal-screen-width*
+*osx*
+*output-channels* 
+*output-chunksize* 
+*persistent-variables*
+*persistent-variables-file-name*
+*pointer-x*
+*pointer-y*
+*preload-images*
+*preload-samples*
+*project*
+*project-directories*
+*project-path*
+*quadtree*
+*quadtree-depth*
+*resizable*
+*resize-hook*
+*resource-handlers*
+*resources*
+*sans*
+*scale-output-to-window*
+*screen-height*
+*screen-width*
+*serif*
+*update-function*
+*updates*
+*use-antialiased-text*
+*use-sound*
+*use-texture-blending*
+*user-init-file-name*
+*user-joystick-profile*
+*user-keyboard-layout*
+*user-projects-directory*
+*window-position*
+*window-title*
+*windows*
+*x11-color-data*
+above
+above-center
+add-block
+add-hook
+add-object
+add-resources
+add-tag
+add-to-list
+aim
+aim-at-thing
+align-to-pixels
+alternate-tap
+analog-stick-heading
+analog-stick-pressed-p
+analog-stick-pressure
+at
+at-next-update
+backward
+below
+below-center
+bind-event
+bind-event
+bind-event-to-method
+bounding-box
+bounding-box-contains
+build-quadtree
+button-to-symbol
+center-point
+cfloat
+change-image
+clear-text-image-cache
+clone
+collide
+colliding-with
+colliding-with
+colliding-with-bounding-box
+colliding-with-rectangle-p
+compose
+compose-below
+compose-beside 
+compose-blank-fields
+compose-blank-fields
+create-path
+create-project-image
+current-buffer
+current-directory
+default-project-directories
+defblock
+define
+define-buffer
+define-resource
+defproject
+defresource
+defun-memo
+destroy
+direction-degrees
+direction-heading
+direction-heading
+direction-to
+direction-to-thing
+disable-key-repeat
+distance
+distance-between
+draw
+draw-box
+draw-image
+draw-line
+draw-string
+draw-string-blended
+draw-string-shaded
+draw-string-solid
+draw-textured-rectangle
+draw-textured-rectangle-*
+drop
+drop-object
+emptyp
+enable-key-repeat
+field-value
+find-bounding-box
+find-heading
+find-object
+find-path
+find-path-waypoints
+find-resource
+find-resource-object
+find-resource-property
+find-text-image
+find-texture
+follow-with-camera
+font-height
+font-text-width
+font-text-width
+font-width
+forward
+get-color
+get-objects
+glide-follow
+glide-window-to
+glide-window-to-object
+halt-music
+halt-sample
+handle-collision
+handle-event
+handle-point-motion
+has-object-p
+has-tag
+heading-between
+heading-degrees
+heading-direction
+heading-to-cursor
+heading-to-thing
+heading-to-thing
+holding-control
+holding-shift
+image-height
+image-width
+index-all-images
+index-all-samples
+index-pending-resources
+index-resource
+initialize
+insert
+install-quadtree
+is-joystick-event
+is-raw-joystick-event
+joystick-axis-pressed-p
+joystick-axis-raw-value
+joystick-axis-value
+joystick-axis-value
+joystick-button-pressed-p
+joystick-button-state
+joystick-profile
+keyboard-down-p
+keyboard-held-p
+keyboard-keys-down
+keyboard-modifier-down-p
+keyboard-modifiers
+keyboard-pressed-p
+keyboard-released-p
+keyboard-time-in-current-state
+keyboard-time-in-previous-state
+kill-buffer
+left-analog-stick-heading
+left-analog-stick-pressed-p
+left-analog-stick-pressure
+left-of
+left-of-center
+load-project
+load-project-image
+load-resource
+load-user-init-file
+load-variables
+make-directory-maybe
+make-event
+make-keyword
+make-non-keyword
+message
+message-to-standard-output
+method-arglist
+method-arglist-for-swank
+method-documentation
+midpoint
+move
+move-to
+move-toward
+move-window
+move-window-to
+move-window-to-object
+new
+normalize-event
+number-of-joysticks
+object-eq
+on-screen-p
+open-project
+opposite-direction
+opposite-heading
+paste
+paste
+paste-as-new-buffer
+paste-from
+paste-here
+paste-into
+pause
+percent-gray
+percent-grey
+percent-of-time
+persistent-variables-file
+play-music
+play-sample
+preload-resources
+press
+quadtree-collide
+quadtree-delete
+quadtree-insert
+quit
+radian-angle
+random-choose
+read-sexp-from-file
+release
+remove-block
+remove-object
+remove-tag
+render-plasma
+reset-joystick
+reset-message-function
+resize
+resize-to-background-image
+resize-to-image
+restore-location
+right-analog-stick-heading
+right-analog-stick-pressed-p
+right-analog-stick-pressure
+right-of
+right-of-center
+run-hook
+save-excursion
+save-location
+scale
+scale-bounding-box
+scale-window
+scroll-down
+scroll-left
+scroll-right
+scroll-tap
+scroll-up
+seconds->frames
+seek-music
+self
+send-event
+set-blending-mode
+set-music-volume
+shut-down
+snap-window-to-object
+split-string-on-lines
+stack-horizontally
+stack-vertically
+start
+start-session
+start-up
+step-coordinates
+step-in-direction
+step-toward-heading
+stop
+stop-following
+switch-to-buffer
+tap 
+toggle-debug
+touching-point-p
+transform-window
+trim
+turn-left
+turn-right
+unbind-event
+update
+update-window-glide
+use-filter
+visit
+will-obstruct
+window-bounding-box
+window-pointer-x
+window-pointer-y
+window-x
+window-y
+with-border
+with-buffer
+with-field-values
+with-fields
+with-fields-ex
+with-font
+with-local-fields
+with-new-buffer
+with-quadtree
+with-session
+without-style-warnings
+write-sexp-to-file
+xblock
+xelf
+xelf-object
+xelf-object-p
+xelfp
+))
 

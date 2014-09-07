@@ -149,7 +149,7 @@ NODE, if any."
 	       :test 'eq)
       ;; save pointer to node so we can avoid searching when it's time
       ;; to delete (i.e. move) the object later.
-      (xelf:set-field-value :quadtree-node object node))))
+      (set-field-value :quadtree-node object node))))
 
 (defmethod quadtree-delete ((object0 xelf-object) &optional (tree *quadtree*))
   (let ((object (find-object object0)))

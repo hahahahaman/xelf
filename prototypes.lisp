@@ -440,7 +440,7 @@ extended argument list ARGLIST."
     (if (null thing)
 	(error "Cannot make a prototype ID for nil.")
 	(cond
-	  ((xelf:object-p thing)
+	  ((xelf::object-p thing)
 	   (name thing))
 	  ((stringp thing) 
 	   (intern thing package))
@@ -501,7 +501,7 @@ extended argument list ARGLIST."
   (assert (object-p (find-object thing))))
 
 (defun xelfp (thing)
-  (or (xelf:object-p thing)
+  (or (xelf::object-p thing)
       (and (stringp thing)
 	   (find-object thing :no-error))))
 
