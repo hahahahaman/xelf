@@ -160,8 +160,7 @@
     (first sel)))
 
 (defun clear-selection ()
-  (clear-halos (current-buffer))
-  (clear-deleted-program-objects (current-buffer)))
+  (clear-halos (current-buffer)))
 
 (defun select-all ()
   (with-local-fields 
@@ -749,80 +748,7 @@ slowdown. See also quadtree.lisp")
 	      (+ width (* border 2))
 	      (+ height (* border 2))))))
 
-;;; The Program is an optional layer of objects on top of the buffer
-
-;; (define-method add-shell-maybe buffer (&optional force)
-;;   (when (or force (null *shell*))
-;;     (setf *shell* 
-;; 	  (new 'shell))))
-
-;; (define-method enter-shell buffer ()
-;;   (when (not *shell-open-p*)
-;;     (add-shell-maybe self)
-;;     (setf %last-focus %focused-block)
-;;     ;; (focus-on self (shell-prompt) :clear-selection nil)
-;;     (when (null *shell-open-p*) (setf %was-key-repeat-p (key-repeat-p)))
-;;     (setf *shell-open-p* t)
-;;     (enable-key-repeat)))
-  
-;; (defun shell-open-p () *shell-open-p*)
-
-;; (define-method command-prompt buffer () 
-;;   (enter-shell self)
-;;   (focus-on self (shell-prompt) :clear-selection nil))
-
-;; (define-method exit-shell buffer ()
-;;   (when *shell-open-p*
-;;     ;; (add-shell-maybe self)
-;;     (setf *shell-open-p* nil)
-;;     (focus-on self %last-focus :clear-selection nil)
-;;     (setf %last-focus nil)
-;;     (unless %was-key-repeat-p 
-;;       (disable-key-repeat))
-;;     (setf %was-key-repeat-p nil)))
-
-;; (define-method toggle-shell buffer ()
-;;   (if *shell-open-p* 
-;;       (exit-shell self)
-;;       (enter-shell self)))
-
 (define-method grab-focus buffer ())
-
-(define-method layout-program-objects buffer ()
-  (mapc #'layout %inputs))
-
-(define-method update-program-objects buffer ()
-  (mapc #'update %inputs))
-  ;; (when (xelfp *shell*) (update *shell*)))
-
-(define-method draw-program-objects buffer ()
-  (with-buffer self
-    (with-fields (drag-start drag focused-block
-			 highlight inputs hover point
-			 ghost prompt) self
-      ;; now start drawing the program objects
-      (mapc #'draw inputs)
-      ;; draw any future
-      (when %future
-	(let ((*image-opacity* 0.2))
-	  (dolist (trail %future)
-	    (mapc #'draw trail))))
-      ;; during dragging we draw the dragged block.
-      (when drag 
-	(layout drag)
-	(when (field-value :parent drag)
-	  (draw-ghost ghost))
-	;; also draw any hover-over highlights 
-	;; on objects you might drop stuff onto
-	(when hover 
-	  (draw-hover (find-object hover)))
-	(draw drag))
-      ;; draw focus
-      (when focused-block
-	(when (xelfp focused-block))
-	(draw-focus (find-object focused-block))))))
-
-(define-method draw-programs buffer ())
 
 (define-method after-draw-object buffer (object))
 
@@ -853,16 +779,6 @@ slowdown. See also quadtree.lisp")
       (draw-object-layer self))))
   
 ;;; Simulation update
-
-(define-method clear-deleted-program-objects buffer ()
-  ;; clean up any deleted objects
-  (when (not (xelfp %cursor)) (setf %cursor nil))
-  (when (not (xelfp %drag)) (setf %drag nil))
-  (when (not (xelfp %point)) (setf %point nil))
-  (when (not (xelfp %drag-origin)) (setf %drag-origin nil))
-  (when (not (xelfp %hover)) (setf %hover nil))
-  (when (not (xelfp %focused-block)) (setf %focused-block nil))
-  (when (not (xelfp %last-focus)) (setf %last-focus nil)))
 
 (define-method clear-deleted-objects buffer ()
   (loop for object being the hash-keys of %objects 
@@ -925,7 +841,6 @@ slowdown. See also quadtree.lisp")
 	      (prog1 t 
 		(when thing 
 		  (with-quadtree quadtree
-		    (clear-deleted-program-objects self)
 		    ))))))))
 
 ;;; Hit testing
@@ -978,7 +893,6 @@ block found, or nil if none is found."
   (mapc #'destroy-halo (get-objects self)))
 
 (define-method focus-on buffer (block &key (clear-selection t))
-  (clear-deleted-program-objects self)
   ;; possible to pass nil
   (with-fields (focused-block) self
     (with-buffer self
