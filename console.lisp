@@ -23,7 +23,7 @@
 ;;; Commentary:
 
 ;; The "console" is the library which provides all XELF system
-;; services. Primitive operations such as opening a window, rendering
+;; services.  Primitive operations such as opening a window, rendering
 ;; text, displaying bitmaps, drawing lines, playing sounds, file
 ;; access, and device input are all handled here.
 
@@ -37,11 +37,11 @@
 ;; for his excellent cl-opengl tutorials:
 ;; http://3bb.cc/tutorials/cl-opengl/
 
+;;; Code:
+
 (in-package :xelf) 
 
 #+sbcl (declaim (sb-ext:muffle-conditions style-warning))
-
-(defsetf point set-point)
 
 (defvar *gl-window-open-p* nil)
 
@@ -56,6 +56,7 @@
   (mapcar #'add-resource plists))
 
 (defun random-choose (set)
+  "Randomly choose one element of the list SET and return it."
   (nth (random (length set)) set))
 
 (defmacro restartably (&body body)
@@ -80,31 +81,34 @@
     (first entry2)))
 
 (defun keyboard-held-p (key) 
-  "Returns the duration in seconds that the key has been depressed over a number of game loops."
+  "Returns the duration in seconds that KEY has been depressed over a
+number of game loops."
   (sdl:key-held-p (keyboard-id key)))
 
 (defun keyboard-pressed-p (key)
-  "Returns t if the key has just been depressed in the current game loop."
+  "Returns t if KEY has just been depressed in the current game loop."
   (sdl:key-pressed-p (keyboard-id key)))
 
 (defun keyboard-released-p (key)
-  "Returns t if the key has just been released in the current game loop."
+  "Returns t if KEY has just been released in the current game loop."
   (sdl:key-released-p (keyboard-id key)))
 
 (defun keyboard-time-in-current-state (key)
-  "Returns the duration in seconds that key is either pressed or depressed."
+  "Returns the duration in seconds that KEY is either pressed or
+depressed."
   (sdl:key-time-in-current-state (keyboard-id key)))
 
 (defun keyboard-time-in-previous-state (key)
-  "Returns the duration in seconds that key was in its previous state either pressed or depressed."
+  "Returns the duration in seconds that KEY was in its previous state
+either pressed or depressed."
   (sdl:key-time-in-previous-state (keyboard-id key)))
 
 (defun keyboard-down-p (key)
-  "Returns t if the key is depressed."
+  "Returns t if the KEY is depressed."
   (sdl:key-down-p (keyboard-id key)))
 
 (defun keyboard-modifier-down-p (mod)
-  "Returns t if the modifier key is depressed."
+  "Returns t if the modifier key MOD is depressed."
   (sdl:mod-down-p (keyboard-mod mod)))
 
 (defun keyboard-keys-down ()
@@ -124,14 +128,17 @@
     (mapcar #'translate (sdl:mods-down-p))))
 
 (defun holding-control ()
+  "Returns non-nil if one of the CONTROL keys is pressed."
   (or (keyboard-modifier-down-p :lctrl)
       (keyboard-modifier-down-p :rctrl)))
 
 (defun holding-alt ()
+  "Returns non-nil if one of the ALT keys is pressed."
   (or (keyboard-modifier-down-p :lalt)
       (keyboard-modifier-down-p :ralt)))
 
 (defun holding-shift ()
+  "Returns non-nil if one of the SHIFT keys is pressed."
   (or (keyboard-modifier-down-p :lshift)
       (keyboard-modifier-down-p :rshift)))
 
@@ -175,6 +182,7 @@ this output is disabled."
 ;;; Hooks
 
 (defun add-to-list (list element)
+  "Add the item ELEMENT to the list LIST."
   (assert (and (symbolp list)
 	       (not (null list))))
   (setf (symbol-value list)
@@ -240,10 +248,14 @@ and the like."
 (defvar *key-repeat-delay* 9)
 (defvar *key-repeat-interval* 1.2)
 
-(defun key-repeat-p () *key-repeat-p*)
+(defun key-repeat-p ()
+  "Returns non-nil if key repeat is enabled."
+  *key-repeat-p*)
 
 (defun enable-key-repeat (&optional (delay *key-repeat-delay*) 
 				    (interval *key-repeat-interval*))
+  "Enable key repeat after DELAY milliseconds, repeating at INTERVAL
+milliseconds."
   (let ((delay-milliseconds (truncate (* delay (/ 1000.0 *frame-rate*))))
   	(interval-milliseconds (truncate (* interval (/ 1000.0 *frame-rate*)))))
     (sdl:enable-key-repeat delay-milliseconds interval-milliseconds)
@@ -252,13 +264,14 @@ and the like."
     (setf *key-repeat-p* t)))
 
 (defun disable-key-repeat ()
+  "Disable key repeat."
   (sdl:disable-key-repeat)
   (setf *key-repeat-p* nil))
 
 ;;; Parceling out events to blocks
 
-(defvar *pointer-x* 0)
-(defvar *pointer-y* 0)
+(defvar *pointer-x* 0 "Current window-relative x-coordinate of the mouse pointer." )
+(defvar *pointer-y* 0 "Current window-relative y-coordinate of the mouse pointer.")
 
 (defvar *event-hook* nil)
 
@@ -283,15 +296,18 @@ The modifier list is sorted; thus, events can be compared for
 equality with `equal' and used as hashtable keys.")
 
 (defun send-event (event)
+  "Send the event EVENT to the currently active objects."
   (if (null *event-handler-function*)
       (error "No event handler function installed. 
 Please set the variable xelf:*event-handler-function*")
       (funcall *event-handler-function* event)))
 
 (defun raw-joystick-event-p (event)
+  "Return non-nil if the EVENT is a raw joystick data event."
   (eq :raw-joystick (first event)))
 
 (defun joystick-event-p (event)
+  "Return non-nil if the EVENT is a joystick event."
   (or (raw-joystick-event-p event)
       (eq :joystick (first event))))
 
@@ -539,20 +555,19 @@ or,
      *joystick-axis-size*))
 
 (defun find-heading (x0 y0 x1 y1)
+  "Return the angle in radians of the ray from the point X0,Y0 to the
+point X1,Y1."
   (atan (- y1 y0) 
 	(- x1 x0)))
 
 (defun opposite-heading (heading)
+  "Return the heading angle opposite to HEADING."
   (- pi heading))
 
 (defun analog-stick-pressed-p (&optional (stick (joystick-left-analog-stick)) (id 0))
   (destructuring-bind (horizontal vertical) stick
     (or (joystick-axis-pressed-p horizontal id)
 	(joystick-axis-pressed-p vertical id))))
-    ;; (< *joystick-dead-zone*
-    ;;    (distance 0 0 
-    ;; 		 (joystick-axis-raw-value horizontal id)
-    ;; 		 (joystick-axis-raw-value vertical id)))))
 
 (defun left-analog-stick-pressed-p (&optional (id 0))
   (analog-stick-pressed-p (joystick-left-analog-stick) id))
@@ -650,7 +665,8 @@ the BUTTON. STATE should be either 1 (on) or 0 (off)."
 
 (defparameter *default-frame-rate* 30)
 
-(defvar *frame-rate* *default-frame-rate*)
+(defvar *frame-rate* *default-frame-rate*
+  "Requested frame rate.")
 
 (defun set-frame-rate (&optional (rate *frame-rate*))
   "Set the frame rate for the game."
@@ -660,25 +676,15 @@ the BUTTON. STATE should be either 1 (on) or 0 (off)."
 (defun get-ticks ()
   (sdl:sdl-get-ticks))
 
-(defvar *dt* 33)
-
 (defvar *next-update-hook* nil)
 
 (defmacro at-next-update (&body body)
+  "Run the forms in BODY at the next game loop update."
   `(prog1 nil 
      (add-hook '*next-update-hook*
 	       #'(lambda () ,@body))))
 		 
-(defvar *garbage-buffers* nil)
-
-(defun delete-garbage-buffers-maybe ()
-  (dolist (buffer *garbage-buffers*)
-    (stop buffer)
-    (destroy buffer))
-  (setf *garbage-buffers* nil))
-
 (defun update-blocks ()
-  (delete-garbage-buffers-maybe)
   (run-hook '*next-update-hook*)
   (setf *next-update-hook* nil)
   (dolist (block *blocks*)
@@ -706,8 +712,8 @@ the BUTTON. STATE should be either 1 (on) or 0 (off)."
 ;; the buffer. If these are the same as the `*screen-' settings
 ;; above, then more of the buffer will be shown when the window size
 ;; increases.
-(defparameter *nominal-screen-width* 640 "Nominal width of the window, in pixels.")
-(defparameter *nominal-screen-height* 480 "Nominal height of the window, in pixels.")
+(defparameter *nominal-screen-width* nil "Nominal width of the window, in pixels.")
+(defparameter *nominal-screen-height* nil "Nominal height of the window, in pixels.")
 
 (defparameter *gl-screen-width* 640 "Width of the window expressed in OpenGL coordinates.")
 (defparameter *gl-screen-height* 480 "Height of the window expressed in OpenGL coordinates.")
@@ -731,6 +737,10 @@ becomes larger.")
   (gl:matrix-mode :projection)
   (gl:load-identity)
   (gl:viewport 0 0 *screen-width* *screen-height*)
+  (when (null *nominal-screen-width*)
+    (setf *nominal-screen-width* *screen-width*))
+  (when (null *nominal-screen-height*)
+    (setf *nominal-screen-height* *screen-height*))
   (if *scale-output-to-window*
       (setf *gl-screen-width* *nominal-screen-width*
 	    *gl-screen-height* *nominal-screen-height*)
@@ -769,10 +779,12 @@ becomes larger.")
 (defvar *window-z* 100)
 
 (defun window-pointer-x (&optional (x *pointer-x*))
+  "Return the absolute x-coordinate of the mouse pointer."
   (+ *window-x*
      (* x (/ 1 (/ *screen-width* *nominal-screen-width*)))))
 
 (defun window-pointer-y (&optional (y *pointer-y*))
+  "Return the absolute y-coordinate of the mouse pointer."
   (+ *window-y*
      (* y (/ 1 (/ *screen-height* *nominal-screen-height*)))))
   
@@ -788,9 +800,9 @@ becomes larger.")
 		(- 0 z))
   (gl:scale scale-x scale-y scale-z))
 
-(defvar *resizable* t)
+(defvar *resizable* t "When non-nil, game window will be resizable.")
 
-(defparameter *resize-hook* nil)
+(defparameter *resize-hook* nil "Hook to be run after user resizes window.")
 
 ;;; The main loop of XELF
 
@@ -800,12 +812,12 @@ becomes larger.")
 
 (defvar *fullscreen* nil "When non-nil, attempt to use fullscreen mode.")
 
-(defvar *window-title* "xelf")
+(defvar *window-title* "xelf" "Title string for OS window.")
 
 (defvar *window-position* :center
   "Controls the position of the game window. Either a list of coordinates or the symbol :center.")
 
-(defvar *suppress-warnings* nil)
+(defvar *suppress-warnings* nil "When non-nil, suppress spurious style warnings.")
 
 (defun quiet-warning-handler (c)
   (when *suppress-warnings*
@@ -819,8 +831,6 @@ display."
   (handler-bind ((warning #'quiet-warning-handler))
     (let ((fps (make-instance 'sdl:fps-fixed 
 			      :target-frame-rate *frame-rate*)))
-					;			    :dt (setf *dt* (truncate (/ 1000 *frame-rate*))))))
-					;    (message "Simulation update time set to ~d milliseconds." *dt*)
       (message "Creating OpenGL window...")
       (cond (*fullscreen*
 	     (sdl:window *screen-width* *screen-height*
@@ -1107,18 +1117,15 @@ A lookup failure results in an error. See `find-resource'.")
 
 (defparameter *project-directory-extension* ".xelf")
 
-(defvar *project-path* nil "The pathname of the currently opened project. 
-This is where all saved objects are stored.")
+(defvar *project-path* nil "The pathname of the currently opened project.")
 
 (defvar *after-load-project-hook* nil)
 
-(defvar *executable* nil "Non-nil when running Xelf from a saved
-binary image.")
+(defvar *executable* nil "Non-nil when running Xelf from a saved binary image.")
 
 (defparameter *untitled* "XELF")
 
-(defvar *project* *untitled*
-  "The name of the current project.")
+(defvar *project* *untitled* "The name of the current project.")
 
 (defvar *recent-projects* nil)
 
@@ -1239,25 +1246,6 @@ name PROJECT. Returns the pathname if found, otherwise nil."
 	(subseq name 0 pos)
 	name)))
 
-;; (defun set-resource-pathname (resource)
-;;   (when (stringp (resource-file resource))
-;;     (setf (resource-file resource)
-;; 	  (cl-fad:merge-pathnames-as-file
-;; 	   (find-project-path *project*)
-;; 	   (native-namestring (resource-file resource))))))
-;; 	  ;; (make-pathname 
-;; 	  ;;  :name (resource-file resource)
-;; 	  ;;  :version nil
-;; 	  ;;  :defaults (find-project-path *project*)))))
-
-;;   ;; (when (stringp (resource-file resource))
-;;   ;;   (when (find-project-path *project*)
-;;   ;;     (setf (resource-file resource)
-;;   ;; 	    (cl-fad:merge-pathnames-as-file
-;;   ;; 	     (find-project-path *project*)
-;;   ;; 	     (resource-file resource))))
-;;   ;;   (resource-file resource)))
-
 (defun index-resource (resource)
   "Add the RESOURCE's record to the resource table.
 If a record with that name already exists, it is replaced."
@@ -1265,11 +1253,6 @@ If a record with that name already exists, it is replaced."
   (setf (gethash (resource-name resource)
 		 *resources*)
 	resource))
-	;; ;; find the file, if any
-	;; (progn
-	;; (when (resource-properties resource)
-	;;   (setf (resource-properties res)
-	;; 	(resource-properties resource))))))
 
 (defun expand-resource-description (plist)
   (destructuring-bind 
@@ -1278,7 +1261,6 @@ If a record with that name already exists, it is replaced."
 	  :type (or type (resource-type-from-name name))
 	  :properties properties
 	  :file (or file name))))
- ;; (or file (find-project-file *project* name)))))
 
 (defun resource-entries-to-plists (entries)
   (cond
@@ -1302,6 +1284,7 @@ If a record with that name already exists, it is replaced."
      (mapcar #'expand-resource-description entries))))
 
 (defmacro defresource (&rest entries)
+  "Main macro for defining new project resources."
   `(eval-when (:load-toplevel)
      (xelf:add-resources 
       (resource-entries-to-plists ',entries))))
@@ -1332,16 +1315,19 @@ If a record with that name already exists, it is replaced."
 		 (list :name (native-namestring (file-namestring filename))))))
 
 (defun index-all-samples ()
+  "Index all .WAV samples in the project."
   (message "Indexing samples...")
   (dolist (sample (project-samples))
     (add-file-resource sample)))
 
 (defun index-all-images ()
+  "Index all .PNG images in the project."
   (message "Indexing images...")
   (dolist (image (project-images))
     (add-file-resource image)))
 
 (defun preload-resources () 
+  "Preload all currently indexed resources."
   (let ((count 0))
     (message "Preloading resources...")
     (loop for resource being the hash-values in *resources* do
@@ -1453,11 +1439,6 @@ If a record with that name already exists, it is replaced."
   (dolist (plist *pending-resources*)
     (index-resource (apply #'make-resource plist))))
 
-    ;; load any pending resource defs
-    ;; ;; possibly preload stuff
-    ;; (when *preload-resources*
-    ;;   (preload-resources))))
-
 (defun play-project (&optional (project *project*))
   (initialize-resource-table)
   (start-up)
@@ -1465,8 +1446,6 @@ If a record with that name already exists, it is replaced."
   (load-project-image project)
   (dolist (plist *pending-resources*)
     (index-resource (apply #'make-resource plist)))
-;  (setf *pending-resources* nil)
-    ;; load any pending resource defs
   (start-session)
   (shut-down))
   
@@ -1608,12 +1587,6 @@ OBJECT as the resource data."
 	    (prog1 t (message "Saving project ~S ... Done." *project*)))))))
 
 (defparameter *export-formats* '(:archive :application))
-
-;; (defun export-archive (pathname)
-
-;; (defun export-application
-
-;; (defun export-project (format)
 
 ;;;  Resource object loading handlers
 
@@ -1915,7 +1888,7 @@ control the size of the individual frames or subimages."
   *user-joystick-profile* *joystick-axis-size* *joystick-dead-zone*))
 
 (defvar *safe-variables* '(*frame-rate* *updates* *screen-width*
-*screen-height* *buffer* *blocks* *dt* *pointer-x* *author* *project*
+*screen-height* *buffer* *blocks* *pointer-x* *author* *project*
 *joystick-profile* *user-joystick-profile* *joystick-axis-size* 
 *joystick-dead-zone* *pointer-y* *resizable* *window-title* *buffers*
 *scale-output-to-window* *persistent-variables*))
@@ -1923,7 +1896,7 @@ control the size of the individual frames or subimages."
 (defvar *persistent-variables* '(*frame-rate* *updates* 
 				 
 				 ;; *screen-width* *screen-height*
-				 *buffer* *blocks* *dt* *pointer-x* *author* 
+				 *buffer* *blocks* *pointer-x* *author* 
 				 *project* *buffers* *scale-output-to-window* 
 				 *pointer-y* *resizable*
 				 *window-title*
@@ -2196,7 +2169,8 @@ of the music."
     (sdl-mixer:halt-music fade-milliseconds)))
 
 (defun play-sample (sample-name &rest args)
-  "When sound is enabled, play the sample resource SAMPLE-NAME."
+  "When sound is enabled, play the sample resource SAMPLE-NAME.
+If successful, returns the integer CHANNEL number playing the sound."
   (when *use-sound*
     (let ((resource (find-resource sample-name)))
 ;      (load-resource resource)
@@ -2207,6 +2181,7 @@ of the music."
 	     args))))
 
 (defun halt-sample (channel &rest args)
+  "Stop playing the sample on channel CHANNEL."
   (when *use-sound*
     (apply #'sdl-mixer:halt-sample :channel channel args)))
 
@@ -2273,6 +2248,9 @@ of the music."
 
 (defun draw-textured-rectangle (x y z width height texture 
 				&key (blend :alpha) (opacity 1.0) (vertex-color "white"))
+  "Draw an OpenGL textured rectangle at X, Y, Z with width WIDTH and height HEIGHT.
+The argument TEXTURE is a texture returned by FIND-TEXTURE. BLEND sets
+the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
   (if (null blend)
       (gl:disable :blend)
       (progn (enable-texture-blending)	
@@ -2334,42 +2312,10 @@ of the music."
 	  (gl:vertex u1* v1* (- 0 z))))
       (gl:translate (- cx) (- cy) 0))))
 
-;; (defun draw-textured-rectangle-* (x y z width height texture 
-;; 				  &key angle (blend :alpha) (opacity 1.0) (vertex-color "white"))
-;;   (if (null blend)
-;;       (gl:disable :blend)
-;;       (progn (enable-texture-blending)	
-;; 	     (set-blending-mode blend)))
-;;   (gl:bind-texture :texture-2d texture)
-;;   (set-vertex-color vertex-color opacity)
-;;   ;; rotate around center
-;;   (let ((cx (- (+ x (/ width 2)) (window-x)))
-;; 	(cy (- (+ y (/ height 2)) (window-y)))
-;; 	(hh (/ height 2))
-;; 	(hw (/ width 2)))
-;;     ;; (gl:matrix-mode :modelview)
-;;     (gl:with-pushed-matrix 
-;;       (gl:load-identity)
-;;       (gl:translate cx cy 0)
-;;       (gl:rotate angle 0 0 1)
-;;       (gl:with-primitive :quads
-;; 	(let* ((x1 (- hw))
-;; 	       (x2 (+ hw))
-;; 	       (y1 (- hh))
-;; 	       (y2 (+ hh)))
-;; 	  (gl:tex-coord 0 1)
-;; 	  (gl:vertex x1 y2 (- 0 z)) 
-;; 	  (gl:tex-coord 1 1)
-;; 	  (gl:vertex x2 y2 (- 0 z)) 
-;; 	  (gl:tex-coord 1 0)
-;; 	  (gl:vertex x2 y1 (- 0 z)) 
-;; 	  (gl:tex-coord 0 0)
-;; 	  (gl:vertex x1 y1 (- 0 z))))
-;;       (gl:translate (- cx) (- cy) 0))))
-       
 (defvar *image-opacity* nil)
 
 (defun draw-image (name x y &key (z 0.0) (blend :alpha) (opacity 1.0) height width)
+  "Draw the image named NAME at x,y,z, sized HEIGHT, WIDTH, with blending mode BLEND."
   (let ((image (find-resource-object name)))
     (draw-textured-rectangle
      x y z 
@@ -2546,6 +2492,7 @@ of the music."
 (defun draw-string (string x y &key (color *color*)
 				    (font *font*)
 				    (z 0))
+  "Render the string STRING at x,y with color COLOR and font FONT."
   (let ((texture (find-text-image font string)))
     (multiple-value-bind (width height) 
 	(font-text-extents string font)
@@ -2631,6 +2578,7 @@ of the music."
 ;;; Engine status
 
 (defun quit (&optional shutdown)
+  "Exit the game engine."
   (when shutdown 
     (setf *quitting* t))
   (setf *project* nil)
@@ -2712,7 +2660,6 @@ of the music."
 	*cached-quadtree* nil
 	*quadtree* nil
  	*project* nil
-;	*notification* nil
 	*clipboard* nil
 	*event-hook* nil
 	*message-hook* nil
@@ -2726,7 +2673,6 @@ of the music."
   ;; don't overwrite paths from executable toplevel code
   (when (null *project-directories*)
     (setf *project-directories* (default-project-directories)))
-;  (load-user-init-file) ;; this step may override *project-directories* and so on 
   (initialize-resource-table)
   (initialize-textures-maybe :force)
   (initialize-colors)
@@ -2736,7 +2682,6 @@ of the music."
   (initialize-buffers)
   (load-standard-resources)
   (setf *next-update-hook* nil)
-  ;; (setf *project* *untitled*)
   (sdl:enable-unicode)
   (enable-key-repeat))
 
@@ -2760,11 +2705,9 @@ of the music."
     (setf *gl-window-open-p* nil))
   (sdl:quit-sdl))
   
-;; (defun reset ()
-;;   (shut-down)
-;;   (start-up))
-
 (defmacro with-session (&body body)
+  "Run the BODY forms with an active engine.
+The BODY should include a call to START-SESSION."
   `(progn 
      (start-up)
      ,@body
@@ -2791,46 +2734,13 @@ of the music."
 
 (defun current-buffer () (find-object *buffer*))
 
-(defun switch-to-buffer (thing)
-  ;; accept both names and buffers
-  ;; (let ((buffer (if (xelfp thing) 
-  ;; 		    thing
-  ;; 		    ;; just create a new buffer
-  ;; 		    (find-buffer thing :create t))))
-  (let ((buffer (find-object thing)))
-    ;; (push (%buffer-name buffer) *buffer-history*)
-    (setf *buffer* buffer)
-    (start-alone buffer)))
-
-(defun make-scratch-buffer ()
-  (let ((buffer (find-buffer "*scratch*" :create t)))
-    (switch-to-buffer buffer)
-    (setf *font* "sans-mono-11")
-    (message "Welcome to Xelf. Press F1 for help.")
-    (enter-shell (current-buffer))))
-
-(defun xelf ()
-  (with-session
-    (make-scratch-buffer)
-    (start-session)))
-
-;;; Editor transport control
-
-(defun pause ()
-  (prog1 nil (transport-pause (current-buffer))))
-
-(defun rewind ()
-  (prog1 nil (transport-rewind (current-buffer))))
-
-(defun play ()
-  (prog1 nil (transport-play (current-buffer))))
-
-(defun toggle-play ()
-  (prog1 nil (transport-toggle-play (current-buffer))))
+(defun switch-to-buffer (buffer)
+  "Switch to the buffer BUFFER."
+  (let ((buffer2 (find-object buffer)))
+    (setf *buffer* buffer2)
+    (start-alone buffer2)))
 
 (defun update-parameters () nil)
-  ;; (when (current-buffer)
-  ;;   (send :update-future (current-buffer))))
 
 ;;; Emacs integration
 
