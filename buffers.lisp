@@ -28,17 +28,12 @@
   (variables :initform nil 
 	     :documentation "Hash table mapping values to values, local to the current buffer.")
   (cursor :initform nil)
-  (point :initform nil :documentation "The currently highlighted word.")
-  (modified-p :initform nil)
   (followed-object :initform nil)
   (background-image :initform nil)
   (background-color :initform nil)
-  (redraw-cursor :initform t)
-  (category :initform :data)
   (x :initform 0)
   (y :initform 0)
   (paused :initform nil)
-  (heading :initform 0.0)
   (height :initform 256)
   (width :initform 256)
   (depth :initform *z-far*)
@@ -63,42 +58,8 @@
   (window-scale-y :initform 1)
   (window-scale-z :initform 1)
   (projection-mode :initform :orthographic)
-  (rewound-selection :initform nil)
-  (future :initform nil)
-  (future-steps :initform 32)
-  (future-step-interval :initform 8)
   (default-events :initform nil)
-		  ;; '(;;((:pause) :transport-toggle-play)
-		    ;; ((:e :alt) :edit-word)
-		    ;; ((:x :control) :exec)
-		    ;; ((:d :control) :delete-word)
-		    ;; ((:c :control) :copy-selected-word)
-		    ;; ((:x :alt) :command-prompt)
-		    ;; ((:g :control) :cancel)
-		    ;; ((:c :alt) :clear-stack)
-		    ;; ((:s :alt) :show-stack)
-		    ;; ((:m :alt) :show-messages)
-;		    ((:p :control) :paste)
-;		    ((:return) :enter)
-		    ;; ((:escape) :cancel)
-;		    ((:f1) :help)
-		    ;; ((:h :control) :help)
-		    ;; ((:x :control) :edit-cut)
-		    ;; ((:c :control) :edit-copy)
-		    ;; ((:v :control) :edit-paste)
-		    ;; ((:v :control :shift) :paste-here)
-		    ;; ((:f9) :toggle-shell)
-		    ;; ((:f12) :transport-toggle-play)
-		    ;; ((:g :control) :escape)
-		    ;; ((:d :control) :drop-selection)))
-		    ;; ((:f12) :toggle-other-windows)
-		    ;; ))
   ;; prototype control
-  (excluded-fields :initform
-		   '(:events :quadtree :click-start :click-start-block :drag-origin :drag-start :drag-offset :focused-block :shell :drag :hover :highlight 
-		     ;; program objects are not saved:
-		     :inputs)
-		   :documentation "Don't serialize the menu bar.")
   (field-collection-type :initform :hash)
   ;; rectangle-select
   (region :initform nil)
@@ -143,9 +104,6 @@
 (define-method buffer-file-name buffer ()
   (when %buffer-name
     (concatenate 'string %buffer-name ".xelf")))
-
-;; (define-method buffer-name buffer ()
-;;   (or %buffer-name (uniquify-buffer-name "*untitled-buffer*")))
 
 (define-method begin-region buffer ()
   (setf %region-start (list (window-pointer-x) (window-pointer-y))))
@@ -227,10 +185,6 @@
 	      do (when (find-object object t)
 		   (setf z (max z (field-value :z (find-object object))))))
 	z)))
-  ;; (let ((things (mapcar #'%z (get-objects self))))
-  ;;   (if things 
-  ;; 	(apply #'max things)
-  ;; 	0)))
 
 (define-method has-object buffer (thing)
   (with-local-fields
@@ -278,12 +232,6 @@
     (kill-buffer name))
   (add-buffer name self))
 
-(defun point ()
-  (%point (current-buffer)))
-
-(defun set-point (word)
-  (setf (%point (current-buffer)) word))
-
 ;; Defining and scrolling the screen viewing window
 
 (defun window-y () (%window-y (current-buffer)))
@@ -294,10 +242,6 @@
 	  (cfloat %window-x)
 	  (cfloat (+ %window-x *nominal-screen-width*))
 	  (cfloat (+ %window-y *nominal-screen-height*))))
-
-;; (define-method bounding-box buffer ()
-;;   (values (cfloat 0) (cfloat 0)
-;; 	  (cfloat %height) (cfloat %width)))
 
 (define-method move-window-to buffer (x y &optional z)
   (setf %window-x x 
@@ -424,57 +368,6 @@
 		    :scale-y %window-scale-y
 		    :scale-z %window-scale-z))
 
-;;; Transport control
-
-(define-method transport-pause buffer ()
-  (setf %paused t)
-  (setf %rewound-selection
-	(mapcar #'duplicate
-		(get-selection self))))
-
-(define-method transport-play buffer ()
-  (setf %paused nil)
-  (clear-future self)
-  (mapc #'destroy (get-selection self))
-  (dolist (each %rewound-selection)
-    (add-object (current-buffer) each))
-  (setf %rewound-selection nil))
-
-(define-method transport-toggle-play buffer ()
-  (if %paused 
-      (transport-play self)
-      (transport-pause self)))
-
-(define-method show-future buffer ()
-  (prog1 nil
-    (let ((selection (get-selection self)))
-      (let (future)
-	(dolist (thing selection)
-	  (remove-object self thing)
-	  (let (trail)
-	    (dotimes (i %future-steps)
-	      (let ((ghost (duplicate thing)))
-		(with-buffer self
-		  (with-quadtree %quadtree
-		    (add-object self ghost)
-		    (assert (%quadtree-node ghost))
-		    (dotimes (j (* i %future-step-interval))
-		      (update ghost)
-		      (run-tasks ghost)
-		      (quadtree-collide ghost))))
-		(remove-object self ghost)
-		(push ghost trail)))
-	    (push trail future))
-	  (add-object self thing)
-	  (make-halo thing))
-	(setf %future future)))))
-
-(define-method clear-future buffer ()
-  (setf %future nil))
-
-(define-method update-future buffer ()
-  (when %future (show-future self)))
-
 ;;; The object layer holds the contents of the buffer.
 
 (defvar *object-placement-capture-hook*)
@@ -483,8 +376,6 @@
   (with-buffer self
     (let ((object (find-object object0)))
       (with-quadtree %quadtree
-	;; (remove-thing-maybe self object)
-	;; (assert (not (contains-object self object)))
 	(let ((uuid (find-uuid object)))
 	  (declare (simple-string uuid))
 	(setf (gethash uuid %objects) uuid))
@@ -509,13 +400,6 @@
     (when (%parent object)
       (unplug-from-parent object))))
 
-(define-method add-block buffer (object &optional x y prepend)
-  (remove-thing-maybe self object))
-
-(define-method drop-block buffer (object x y)
-  (add-object self object)
-  (move-to object x y))
-
 (define-method drop-object buffer (object &optional x y z)
   (with-quadtree (field-value :quadtree self)
     (add-object self (find-object object))
@@ -528,14 +412,6 @@
 (define-method drop-selection buffer ()
   (dolist (each (get-selection self))
     (drop-object self each)))
-
-(define-method add-at-pointer buffer (object)
-  (layout object)
-  (add-block self object 
-	      (window-pointer-x) 
-	      (- (window-pointer-y) (%height object))
-	      :prepend)
-  (focus-on self object))
 
 (define-method contains-object buffer (object)
   (gethash (the simple-string (find-uuid object))
@@ -916,8 +792,8 @@ slowdown. See also quadtree.lisp")
   (mapc #'layout %inputs))
 
 (define-method update-program-objects buffer ()
-  (mapc #'update %inputs)
-  (when (xelfp *shell*) (update *shell*)))
+  (mapc #'update %inputs))
+  ;; (when (xelfp *shell*) (update *shell*)))
 
 (define-method draw-program-objects buffer ()
   (with-buffer self
@@ -941,21 +817,10 @@ slowdown. See also quadtree.lisp")
 	(when hover 
 	  (draw-hover (find-object hover)))
 	(draw drag))
-      (when (xelfp *shell*)
-	(draw *shell*))
-      ;; (when (xelfp %cursor)
-      ;; 	(draw-cursor %cursor))
       ;; draw focus
       (when focused-block
 	(when (xelfp focused-block))
 	(draw-focus (find-object focused-block))))))
-      ;; 
-      ;; ;; (when *shell*
-      ;; ;; 	(draw-focus (shell-prompt)))
-      ;; ;; (when highlight
-      ;; ;; 	(draw-highlight highlight))
-      ;; (when (and point (read-only-p point))
-      ;; 	(draw-point point)))))
 
 (define-method draw-programs buffer ())
 
@@ -985,27 +850,7 @@ slowdown. See also quadtree.lisp")
 	    (draw-box 0 0 width height
 		      :color background-color)))
       ;; now draw the object layer
-      (draw-object-layer self)
-      ;; possibly redraw cursor to ensure visibility.
-      ;; (when (and (xelfp %cursor) %redraw-cursor)
-      ;; 	(draw (find-object %cursor)))
-      ;; draw region if needed
-      (when %region (draw-region self))
-      ;; draw any overlays
-      (if *shell-open-p* 
-      	  (draw-program-objects self)
-      	  (draw-programs self)))))
-      ;; ;; draw focus
-      ;; (when focused-block
-      ;; 	(assert (xelfp focused-block))
-      ;; 	(draw-focus focused-block))
-      ;; )))
-      ;; (if %parent
-      ;; 	  (gl:pop-matrix)
-      ;; possibly draw shell
-      ;; (if *shell-open-p* 
-      ;; 	  (draw-shell-objects self)
-      ;; 	  (draw-shells self)))))
+      (draw-object-layer self))))
   
 ;;; Simulation update
 
@@ -1034,10 +879,6 @@ slowdown. See also quadtree.lisp")
 
 (define-method update buffer ()
   (with-field-values (objects drag cursor) self
-    ;; clean up after destroyed shell if needed
-    (when (and *shell* (not (xelfp *shell*)))
-      (setf *shell-open-p* nil)
-      (setf %inputs (delete *shell* %inputs :test 'equal)))
     ;; build quadtree if needed
     (when (null %quadtree)
       (install-quadtree self))
@@ -1060,17 +901,7 @@ slowdown. See also quadtree.lisp")
 	  (loop for object being the hash-values in objects do
 	    (when (xelfp object)
 	      (unless (eq :passive (field-value :collision-type object))
-		(quadtree-collide (find-object object))))))))
-    ;; now outside the quadtree,
-    ;; possibly update the program layer
-    (with-buffer self
-      (when *shell-open-p*
-	(with-quadtree nil
-	  (layout self)
-	  (layout-program-objects self)
-	  (update-program-objects self)
-	  (when *shell* (update *shell*))
-	  (clear-deleted-program-objects self))))))
+		(quadtree-collide (find-object object))))))))))
     
 (define-method evaluate buffer ()
   (prog1 self
@@ -1083,9 +914,7 @@ slowdown. See also quadtree.lisp")
     ;; (setf %x 0 %y 0)
 	  ;; %width *gl-screen-width* 
 	  ;; %height *gl-screen-height*)
-    (mapc #'layout %inputs)
-    (when (xelfp *shell*)
-      (layout *shell*))))
+    (mapc #'layout %inputs)))
   
 (define-method handle-event buffer (event)
   (clear-deleted-program-objects self)
@@ -1094,9 +923,6 @@ slowdown. See also quadtree.lisp")
       (or (call-next-method self event)
 	  (let ((thing 
 		  focused-block))
-		  ;; (if *shell-open-p* 
-		  ;;     focused-block
-		  ;;     cursor)))
 	      (prog1 t 
 		(when thing 
 		  (with-quadtree quadtree
@@ -1374,65 +1200,13 @@ block found, or nil if none is found."
       ;; clean up bookeeping
       (clear-drag-data self))))
 
-;; SHIFT-click actions for buffers
-  
-(define-method tap buffer (x y) ()
-  (clear-region self))
-
-(define-method alternate-tap buffer (x y)
-  (let ((entry (new 'expression)))
-    (add-at-pointer self entry)))
-;    (setf %point entry)))
-
+(define-method tap buffer (x y) ())
+(define-method alternate-tap buffer (x y))
 (define-method scroll-tap buffer (x y))
-
 (define-method scroll-up buffer ())
 (define-method scroll-down buffer ())
 (define-method scroll-left buffer ())
 (define-method scroll-right buffer ())
-
-(define-method tab buffer (&optional backward)
-  (when %focused-block
-    (with-buffer self
-      (tab %focused-block backward))))
-
-(define-method backtab buffer ()
-  (tab self :backward))
-  
-(define-method exec buffer ()
-  (when (and %point
-	     (%value %point))
-    (execute (list (%value %point)))))
-
-(define-method delete-word buffer ())
-
-(define-method copy-selected-word buffer ()
-  (when %point 
-    (add-at-pointer self (duplicate-phrase %point))))
-
-(define-method edit-word buffer ()
-  (when %point (start-editing %point)))
-
-(define-method cancel buffer ()
-  (when %point (cancel-editing %point)))
-
-(define-method escape buffer ()
-  (exit-shell self))
-
-(define-method show-stack buffer ()
-  (notify (format nil "~S" *stack*)))
-
-(define-method show-messages buffer ()
-  (notify-message (recent-messages 6)))
-
-(define-method clear-stack buffer ()
-  (setf *stack* nil)
-  (notify "Stack cleared."))
-
-;; (define-method enter buffer ()
-;;   (if (xelfp %point)
-;;       (evaluate-here-and-die %point)
-;;       (setf %point nil)))
 
 (define-method start buffer ()
   (with-buffer self
@@ -1444,49 +1218,5 @@ block found, or nil if none is found."
   (contained-in-bounding-box 
    thing
    (multiple-value-list (window-bounding-box (current-buffer)))))
-
-;;; Serialization of buffers
-
-(define-method before-serialize buffer ()
-  (clear-halos self))
-
-(define-method after-deserialize buffer ()
-  (after-deserialize%super self)
-  (when %buffer-name (add-buffer %buffer-name self))
-  (clear-drag-data self)
-  (clear-deleted-program-objects self)
-  ;; (clear-deleted-objects self)
-  (add-shell-maybe self :force))
-
-;;; Help
-
-(defparameter *help-message*
-"Welcome to Xelf. 
-
-Left-click-and-drag to move objects. Right-click objects to select
-them, which opens a \"halo menu\" with operation handles.
-
-Right click multiple objects to select. Use the Move handle to move
-multiple objects.  Destroy handle deletes objects.  Lambda handle
-executes objects. 
-
-Alt-X to type in a Lisp command in the \"shell\", or right-click
-the background to create an object by typing, then press <return>.
-
-Other keybindings:
-
-Copy: Control-C    Cut:  Control-X    Paste: Control-V
-Paste at pointer: Shift-Control-V
-Toggle shell view: F9     Pause/unpause: F12
-
-See sidebar for more commands to try. 
-
-Try enlarging the window for better results.
-")
-
-(define-method help buffer ()
-  (let ((help (new 'text *help-message*)))
-    (add-object self help)
-    (move-to help 20 20)))
 
 ;;; buffers.lisp ends here

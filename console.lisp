@@ -43,10 +43,6 @@
 
 (defsetf point set-point)
 
-(defvar *shell* nil)
-
-(defvar *shell-open-p* nil)
-
 (defvar *gl-window-open-p* nil)
 
 (defvar *pending-resources* '())
@@ -2719,8 +2715,6 @@ of the music."
 ;	*notification* nil
 	*clipboard* nil
 	*event-hook* nil
-	*shell* nil
-	*shell-open-p* nil
 	*message-hook* nil
 	*updates* 0
 	*resizable* t
@@ -2760,8 +2754,6 @@ of the music."
     (setf *buffer* nil)
     (setf *blocks* nil)
     (setf *next-update-hook* nil)
-    (setf *shell* nil)
-    (setf *shell-open-p* nil)
     (setf *clipboard* nil)
     (setf *frame-rate* *default-frame-rate*)
     (setf *event-hook* nil)
