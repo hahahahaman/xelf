@@ -838,13 +838,13 @@ The KEYWORD must be one of:
 (defun heading-degrees (radians)
   (* radians (cfloat (/ 180 pi))))
 
-(define-method turn-left nil (degrees)
-  "Turn this object's heading to the left DEGREES degrees."
-  (decf %heading (radian-angle degrees)))
+(define-method turn-left nil (radians)
+  "Turn this object's heading to the left by RADIANS."
+  (decf %heading radians))
 
-(define-method turn-right nil (degrees)
-  "Turn this object's heading to the right DEGREES degrees."
-  (incf %heading (radian-angle degrees)))
+(define-method turn-right nil (radians)
+  "Turn this object's heading to the right by RADIANS."
+  (incf %heading radians))
 
 (defun step-coordinates (x y heading &optional (distance 1))
   (values (+ x (* distance (cos heading)))

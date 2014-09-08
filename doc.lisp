@@ -20,6 +20,42 @@
 
 (in-package :xelf)
 
+(defun get-symbols ()
+  (let (symbols)
+    (do-external-symbols (symbol (find-package :xelf))
+      (push symbol symbols))
+    symbols))
+
+(defun symbol-category (symbol)
+  (let ((entry (find symbol *symbol-categories* :key #'first)))
+    (when entry (second entry))))
+
+(defun all-categories ()
+  (let (categories)
+    (dolist (entry *symbol-categories*)
+      (when (second entry)
+	(pushnew (second entry) categories)))
+    categories))
+
+(defun find-symbols-in-category (category)
+  (labels ((p (sym)
+	     (eq category (second (find sym *symbol-categories* :key #'first)))))
+    (sort (remove-if-not #'p (get-symbols))
+	  #'string<)))
+
+(defvar *categories*
+  '(BUFFERS RESOURCES PATHFINDING EVENTS MOVEMENT DRAWING
+	 COLLISION-DETECTION TEXT LIFECYCLE KEYBOARD MOUSE
+	 JOYSTICK SOUND MATH HOOKS nil))
+
+(defun category-name (category)
+  (if (null category)
+      "System"
+      (string-capitalize (string-downcase (pretty-string (symbol-name category))))))
+      
+(defun find-symbol-categories ()
+  (mapc #'find-symbols-in-category *categories*))
+
 (defvar *symbol-count* 0)
 
 (defun methodp (symbol)
@@ -32,6 +68,9 @@
    text)
   (fresh-line stream))
 
+(defun arguments-prefix (stream) 
+  (format stream " "))
+
 (defun document-function (symbol stream)
   (let ((doc (documentation symbol 'function)))
     (heading 2 (format nil "~A (~A)" symbol (if (macro-function symbol) "macro"
@@ -41,11 +80,13 @@
 							"generic function"
 							"function"))))
 	     stream)
-    (heading 3 "Arguments" stream)
-    (format stream "~S" (sb-introspect:function-lambda-list (fdefinition symbol)))
+    (arguments-prefix stream)
+    (fresh-line stream)
+    (fresh-line stream)
+    (format stream ": ~S" (sb-introspect:function-lambda-list (fdefinition symbol)))
     (when doc
       (incf *symbol-count*)
-      (heading 3 "Documentation" stream)
+      (fresh-line stream)
       (format stream "~A" doc)
       (fresh-line stream))))
 
@@ -57,6 +98,15 @@
     (heading 3 "Documentation" stream)
     (format stream "~A" (documentation symbol 'variable)))
   (fresh-line stream))
+
+(defun document-category (category stream)
+  (fresh-line stream)
+  (heading 1 (category-name category) stream)
+  (fresh-line stream)
+  (dolist (sym (find-symbols-in-category category))
+    (if (fboundp sym)
+	(document-function sym stream)
+	(document-variable sym stream))))
 
 (defun preamble-file-lines (preamble-file)
   (with-open-file (file preamble-file
@@ -87,11 +137,11 @@
       (fresh-line stream))
     (format stream "#+OPTIONS: toc:2 *:nil")
     (fresh-line stream)
+    (format stream "#+INFOJS_OPT: view:info toc:t tdepth:1")
+    (fresh-line stream)
     (fresh-line stream)
     (do-external-symbols (symbol package)
       (push symbol symbols))
-    ;; remove method symbols and method defun symbols
-    (setf symbols (sort symbols #'string<))
     ;; print preamble
     (let ((preamble-lines 
 	    (when preamble-file
@@ -100,14 +150,8 @@
 	(dolist (line preamble-lines)
 	  (format stream "~A " line)
 	  (fresh-line stream))))
-    (dolist (sym symbols)
-      (if (fboundp sym)
-	  (document-function sym stream)
-	  (document-variable sym stream)))
-    (dolist (sym symbols)
-      (when (and (fboundp sym)
-		 (typep (fdefinition sym) 'standard-generic-function))
-	(make-defgeneric sym t)))
+    (dolist (category *categories*)
+      (document-category category stream))
     (message "Documented ~S of ~S symbols." *symbol-count* (length symbols))))
 
 (defun document-package-to-file (package-name output-file &key preamble-file title)
