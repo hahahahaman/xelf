@@ -121,7 +121,7 @@ above
 above-center
 add-block
 add-hook
-add-object
+add-node
 add-resources
 add-tag
 add-to-list
@@ -171,7 +171,6 @@ current-buffer
 current-directory
 default-events
 default-project-directories
-defblock
 define
 define-buffer
 define-resource
@@ -200,7 +199,7 @@ draw-string-solid
 draw-textured-rectangle
 draw-textured-rectangle-*
 drop
-drop-object
+drop-node
 duplicate
 emptyp
 enable-key-repeat
@@ -224,16 +223,17 @@ font-text-width
 font-width
 forward
 get-color
-get-objects
+get-nodes
+do-nodes
 glide-follow
 glide-window-to
-glide-window-to-object
+glide-window-to-node
 halt-music
 halt-sample
 handle-collision
 handle-event
 handle-point-motion
-has-object-p
+has-node-p
 has-tag
 heading quadtree-node
 heading-between
@@ -312,7 +312,7 @@ move-to
 move-toward
 move-window
 move-window-to
-move-window-to-object
+move-window-to-node
 new
 node 
 normalize-event
@@ -355,7 +355,7 @@ random-choose
 read-sexp-from-file
 release
 remove-block
-remove-object
+remove-node
 remove-tag
 render-plasma
 reset-joystick
@@ -388,7 +388,7 @@ set-blending-mode
 set-field-value
 set-music-volume
 shut-down
-snap-window-to-object
+snap-window-to-node
 split-string-on-lines
 stack-horizontally
 stack-vertically
@@ -416,7 +416,7 @@ use-filter
 visible
 visit
 width
-will-obstruct
+will-obstruct-p
 window-bounding-box
 window-pointer-x
 window-pointer-y

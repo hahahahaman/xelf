@@ -572,7 +572,7 @@ See `keys.lisp' for the full table of key and modifier symbols.
 			 (new 'task :insert-string self (list text))))
     
 (define-method insert nil (&optional x y z)
-  (drop-object (current-buffer) self x y z))
+  (add-node (current-buffer) self x y z))
 
 (define-method insert-string nil (string)
   (declare (ignore string))
@@ -1318,7 +1318,7 @@ See buffers.lisp for more on the implementation of drag-and-drop."
     (dolist (input inputs)
       (draw input))))
 
-(define-method will-obstruct nil (path-finder)
+(define-method will-obstruct-p nil (path-finder)
   (has-tag self :solid))
 
 (define-method resize-to-image nil ()

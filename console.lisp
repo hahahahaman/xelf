@@ -2642,7 +2642,7 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
     (cffi:use-foreign-library sdl-image))
 
 (defun print-copyright-notice ()
-  (dolist (line (split-string-on-lines *full-copyright-notice*))
+  (dolist (line (split-string-on-lines *copyright-notice*))
     (message line)))
 
 (defun load-standard-resources ()

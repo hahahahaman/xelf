@@ -157,9 +157,17 @@
 					  (%objects (current-buffer))
 	  do (make-halo thing))))
 
-(define-method get-objects buffer ()
+(define-method get-nodes buffer ()
   (loop for object being the hash-values in (field-value 'objects self)
 	when (xelfp object) collect (find-object object)))
+
+(defmacro do-nodes (var buffer &body body)
+  "Iterate over the nodes in BUFFER, binding VAR to each node and
+evaluating the forms in BODY for each."
+  (let ((node (gensym)))
+  `(loop for ,node being the hash-values in (field-value 'objects ,buffer)
+	 do (let ((,var (find-node ,node)))
+	      ,@body))))
 
 (defun z-sort (objects)
   (sort objects #'< :key #'%z))
@@ -172,10 +180,6 @@
 	      do (when (find-object object t)
 		   (setf z (max z (field-value 'z (find-object object))))))
 	z)))
-
-(define-method has-object-p buffer (thing)
-  (with-local-fields
-    (gethash (find-uuid thing) %objects)))
 
 (define-method region-objects buffer ()
   (when %region
@@ -235,7 +239,7 @@
 	%window-y y)
   (when z (setf %window-z z)))
 
-(define-method move-window-to-object buffer (object)
+(define-method move-window-to-node buffer (object)
   (multiple-value-bind (top left right bottom) 
       (bounding-box object)
     (declare (ignore right bottom))
@@ -246,9 +250,9 @@
 
 (define-method move-window-to-cursor buffer ()
   (when %cursor
-    (move-window-to-object self %cursor)))
+    (move-window-to-node self %cursor)))
 
-(define-method snap-window-to-object buffer (object)
+(define-method snap-window-to-node buffer (object)
   (multiple-value-bind (top left right bottom) 
       (bounding-box (find-object object))
     (declare (ignore right bottom))
@@ -261,7 +265,7 @@
 
 (define-method snap-window-to-cursor buffer ()
   (when %cursor
-    (snap-window-to-object self %cursor)))
+    (snap-window-to-node self %cursor)))
 
 (define-method move-window buffer (dx dy &optional dz)
   (incf %window-x dx)
@@ -273,7 +277,7 @@
   (setf %window-y0 y)
   (when z (setf %window-z z)))
 
-(define-method glide-window-to-object buffer (object)
+(define-method glide-window-to-node buffer (object)
   (multiple-value-bind (top left right bottom) 
       (bounding-box (find-object object))
     (declare (ignore right bottom))
@@ -284,13 +288,13 @@
 
 (define-method glide-window-to-cursor buffer ()
   (when %cursor
-    (glide-window-to-object self %cursor)))
+    (glide-window-to-node self %cursor)))
 
 (define-method follow-with-camera buffer (thing)
   (assert (or (null thing) (xelfp thing)))
-  (snap-window-to-object self thing)
+  (snap-window-to-node self thing)
   (setf %followed-object thing)
-  (glide-window-to-object self %followed-object))
+  (glide-window-to-node self %followed-object))
 
 (define-method stop-following buffer ()
   (setf %followed-object nil))
@@ -359,7 +363,7 @@
 
 (defvar *object-placement-capture-hook*)
 
-(define-method add-object buffer (object0 &optional x y (z 0))
+(define-method add-node buffer (object0 &optional x y (z 0))
   (with-buffer self
     (let ((object (find-object object0)))
       (with-quadtree %quadtree
@@ -370,25 +374,25 @@
 	  (when (and (numberp x) (numberp y))
 	    (move-to object x y)))))))
       
-(define-method remove-object buffer (object)
+(define-method remove-node buffer (object)
   (with-buffer self (quadtree-delete-maybe object))
   (remhash (the simple-string (find-uuid object)) %objects))
 
 (define-method remove-thing-maybe buffer (object)
   (with-buffer self
     (when (gethash (the simple-string (find-uuid object)) %objects)
-      (remove-object self object))))
+      (remove-node self object))))
 
-(define-method drop-object buffer (object &optional x y z)
-  (add-object self object x y z))
+(define-method drop-node buffer (object &optional x y z)
+  (add-node self object x y z))
 
 (define-method finish-drag nil ())
 
 (define-method drop-selection buffer ()
   (dolist (each (get-selection self))
-    (drop-object self each)))
+    (drop-node self each)))
 
-(define-method contains-object buffer (object)
+(define-method contains-node-p buffer (object)
   (gethash (the simple-string (find-uuid object))
 	   %objects))
 
@@ -439,7 +443,7 @@
 (define-method set-cursor buffer (cursor)
   (setf %cursor (find-uuid cursor)))
   ;; (unless (contains-object self cursor)
-  ;;   (add-object self cursor)))
+  ;;   (add-node self cursor)))
 
 ;;; Configuring the buffer's space and its quadtree indexing
 
@@ -462,7 +466,7 @@ slowdown. See also quadtree.lisp")
 		      (or %quadtree-depth 
 			  *default-quadtree-depth*)))
       (assert quadtree)
-      (let ((objects (get-objects self)))
+      (let ((objects (get-nodes self)))
 	(when objects
 	  (quadtree-fill objects quadtree))))))
 
@@ -483,7 +487,7 @@ slowdown. See also quadtree.lisp")
 
 (define-method trim buffer ()
   (prog1 self
-    (let ((objects (get-objects self)))
+    (let ((objects (get-nodes self)))
       (when objects
 	(with-fields (quadtree height width) self
 	  ;; adjust bounding box so that all objects have positive coordinates
@@ -501,7 +505,7 @@ slowdown. See also quadtree.lisp")
 ;;; Cut and paste
 
 (define-method get-selection buffer ()
-  (let ((all (append (get-objects self) %inputs)))
+  (let ((all (append (get-nodes self) %inputs)))
    (remove-if-not #'%halo all)))
 
 (defun copy (&optional (self (current-buffer)) objects0)
@@ -514,7 +518,7 @@ slowdown. See also quadtree.lisp")
 	(let ((duplicate (duplicate-safely object)))
 	  ;; don't keep references to anything in the (current-buffer)
 	  (clear-buffer-data duplicate)
-	  (add-object *clipboard* duplicate))))))
+	  (add-node *clipboard* duplicate))))))
 
 (defun cut (&optional (self (current-buffer)) objects0)
   (with-buffer self
@@ -526,15 +530,15 @@ slowdown. See also quadtree.lisp")
 	(dolist (object objects)
 	  (with-quadtree (%quadtree self)
 	    (remove-thing-maybe self object))
-	  (add-object *clipboard* object))))))
+	  (add-node *clipboard* object))))))
 
 (defun paste-from (self source &optional (dx 0) (dy 0))
-  (dolist (object (mapcar #'duplicate-safely (get-objects (find-object source))))
+  (dolist (object (mapcar #'duplicate-safely (get-nodes (find-object source))))
     (with-fields (x y) object
       (clear-buffer-data object)
       (with-buffer self
 	(with-quadtree (field-value 'quadtree self)
-	  (add-object self object)
+	  (add-node self object)
 	  (move-to object (+ x dx) (+ y dy)))))))
   
 (defun paste-into (self source &optional (dx 0) (dy 0))
@@ -586,7 +590,7 @@ slowdown. See also quadtree.lisp")
       (let ((objects-bounding-box 
 	      (mapcar #'cfloat
 		      (multiple-value-list 
-		       (find-bounding-box (get-objects self))))))
+		       (find-bounding-box (get-nodes self))))))
 	(destructuring-bind (top left right bottom)
 	    (mapcar #'cfloat objects-bounding-box)
 	  ;; are all the objects inside the existing box?
@@ -634,17 +638,17 @@ slowdown. See also quadtree.lisp")
 (defun compose (buffer1 buffer2)
   (with-new-buffer 
     (when (and buffer1 buffer2)
-      (let ((all-objects (nconc (get-objects buffer1)
-				(get-objects buffer2))))
+      (let ((all-objects (nconc (get-nodes buffer1)
+				(get-nodes buffer2))))
 	(dolist (object all-objects)
-	  (add-object (current-buffer) 
+	  (add-node (current-buffer) 
 		      (duplicate-safely object)))
 	(destroy buffer1)
 	(destroy buffer2)
 	(current-buffer)))))
 
 (define-method scale buffer (sx &optional sy)
-  (let ((objects (get-objects self)))
+  (let ((objects (get-nodes self)))
     (dolist (object objects)
       (with-fields (x y width height) object
 	(move-to object (* x sx) (* y (or sy sx)))
@@ -690,7 +694,7 @@ slowdown. See also quadtree.lisp")
   (reduce #'compose-beside buffers :initial-value (with-new-buffer)))
 
 (define-method flip-horizontally buffer ()
-  (let ((objects (get-objects self)))
+  (let ((objects (get-nodes self)))
     (dolist (object objects)
       (with-fields (x y) object
 	(move-to object (- x) y))))
@@ -698,7 +702,7 @@ slowdown. See also quadtree.lisp")
   (trim self))
 
 (define-method flip-vertically buffer ()
-  (let ((objects (get-objects self)))
+  (let ((objects (get-nodes self)))
     (dolist (object objects)
       (with-fields (x y) object
 	(move-to object x (- y)))))
@@ -848,7 +852,7 @@ block found, or nil if none is found."
 (defparameter *minimum-drag-distance* 6)
   
 (define-method clear-halos buffer ()
-  (mapc #'destroy-halo (get-objects self)))
+  (mapc #'destroy-halo (get-nodes self)))
 
 (define-method focus-on buffer (block &key (clear-selection t))
   ;; possible to pass nil
@@ -1028,7 +1032,7 @@ block found, or nil if none is found."
 			(accept (find-object hover) (find-object drag))
 			;; drop onto map
 			(with-quadtree quadtree
-			  (drop-object self drag drop-x drop-y)))
+			  (add-node self drag drop-x drop-y)))
 		    (finish-drag drag)))))
 	  ;;
 	  ;; we were clicking instead of dragging

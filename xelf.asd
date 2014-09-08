@@ -41,7 +41,8 @@
 	       ;; (:file "shell" :depends-on ("sidebar"))
 	       ;; (:file "commands" :depends-on ("shell"))
 	       (:file "buffers" :depends-on ("blocks"))
-	       (:file "path" :depends-on ("buffers"))))
+	       (:file "generics" :depends-on ("buffers"))
+	       (:file "path" :depends-on ("generics"))))
 
 	       ;; (:file "syntax" :depends-on ("blocks"))))
 ;	       (:file "trees" :depends-on ("phrase"))

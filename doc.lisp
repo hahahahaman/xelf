@@ -37,7 +37,9 @@
     (heading 2 (format nil "~A (~A)" symbol (if (macro-function symbol) "macro"
 						(if (find-class symbol nil)
 						    "class"
-						    "function")))
+						    (if (typep (fdefinition symbol) 'standard-generic-function)
+							"generic function"
+							"function"))))
 	     stream)
     (heading 3 "Arguments" stream)
     (format stream "~S" (sb-introspect:function-lambda-list (fdefinition symbol)))
@@ -64,6 +66,16 @@
            (string (make-string len)))
       (read-sequence string file)
       (split-string-on-lines string))))
+
+(defun make-defgeneric (sym stream)
+  (format stream "(defgeneric ~A" (string-downcase (symbol-name sym)))
+  (fresh-line stream)
+  (format stream "  ~A" (sb-introspect:function-lambda-list (fdefinition sym)))
+  (fresh-line stream)
+  (format stream "\" \")")
+  (fresh-line stream)
+  (fresh-line stream)
+  (fresh-line stream))
 
 (defun document-package (package-name &key (stream t) preamble-file title)
   (let ((package (find-package package-name))
@@ -92,6 +104,10 @@
       (if (fboundp sym)
 	  (document-function sym stream)
 	  (document-variable sym stream)))
+    (dolist (sym symbols)
+      (when (and (fboundp sym)
+		 (typep (fdefinition sym) 'standard-generic-function))
+	(make-defgeneric sym t)))
     (message "Documented ~S of ~S symbols." *symbol-count* (length symbols))))
 
 (defun document-package-to-file (package-name output-file &key preamble-file title)

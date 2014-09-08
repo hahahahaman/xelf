@@ -77,7 +77,7 @@
 		      (when (and (xelfp object)
 				 (field-value :collision-type object)
 				 (not (object-eq object (path-finder path)))
-				 (will-obstruct object (path-finder path)) )
+				 (will-obstruct-p object (path-finder path)) )
 			(return-from colliding object))))
 	       (prog1 nil
 		 (quadtree-map-collisions 

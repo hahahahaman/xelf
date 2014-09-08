@@ -66,7 +66,7 @@ and complete source code may be found at the SBCL website: http://sbcl.org
   #+ccl *ccl-copyright-notice*
   #+sbcl *sbcl-copyright-notice*)
 
-(defvar *copyright-notice*
+(defvar *xelf-copyright-notice*
 "-----------------------------------------------------------------
 Welcome to Xelf. 
 Xelf is Copyright (C) 2006-2013 by David T O'Toole <dto@blocky.io>
@@ -106,8 +106,8 @@ Please see the included text files \"COPYING\" and \"CREDITS\" for
 more information.
 ")
 
-(defvar *full-copyright-notice*
-  (concatenate 'string *compiler-copyright-notice* *copyright-notice*))
+(defvar *copyright-notice*
+  (concatenate 'string *compiler-copyright-notice* *xelf-copyright-notice*))
 
 ;;; Fundamental class
 
