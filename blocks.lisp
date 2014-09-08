@@ -48,31 +48,13 @@
 		(string-trim " " string)))))
 
 (define-prototype node (:super xnode)
-  (cursor-clock :initform 0)
-  (hearing-distance :initform nil)
-  ;; general information
-  (shell-only :initform nil)
-  (inputs :initform nil)
-  (focused-p :initform nil)
-  (buffer-name :initform nil)
-  (read-only :initform nil)
-  (input-names :initform nil)
-  (results :initform nil)
-  (category :initform :data)
   (tags :initform nil)
-  (garbagep :initform nil)
-  (no-background :initform t)
-  (color :initform "white")
-  (temporary :initform nil)
-  (methods :initform nil)
-  (parent :initform nil :documentation "Link to enclosing parent block, or nil if none.")
   (events :initform nil :documentation "Event bindings, if any. See also `bind-event'.")
   (default-events :initform nil)
-  (operation :initform :block)
   ;; visual layout
-  (x :initform (cfloat 0) :documentation "X coordinate of this block's position.")
-  (y :initform (cfloat 0) :documentation "Y coordinate of this block's position.")
-  (z :initform (cfloat 0) :documentation "Z coordinate of this block's position.")
+  (x :initform (cfloat 0) :accessor x :documentation "X coordinate of this block's position.")
+  (y :initform (cfloat 0) :accessor y :documentation "Y coordinate of this block's position.")
+  (z :initform (cfloat 0) :accessor z :documentation "Z coordinate of this block's position.")
   (heading :initform 0.0 :documentation "Heading angle of this block, in radians. See also `radian-angle'.")
   (quadtree-node :initform nil)
   ;; 
@@ -134,8 +116,7 @@ either a symbol naming the field, or a list of the form (SYMBOL
 (defmethod duplicate-safely ((thing node))
   (let ((dupe (duplicate thing)))
     (prog1 (find-object dupe)
-      (setf (field-value :quadtree-node dupe) nil)
-      (setf (field-value :parent dupe) nil))))
+      (setf (field-value 'quadtree-node dupe) nil))))
 
 (defparameter *block-categories*
   '(:system :motion :event :message :looks :sound :structure :data :button
@@ -248,21 +229,10 @@ streams as a basis.
 ;;; Block lifecycle
 
 (defmethod initialize-instance :after ((self node) &key)
-  ;; (with-fields (x y) self
-    ;; (bind-any-default-events self)
-    (register-uuid self))
-    ;; (setf x 0 y 0)))
-    ;; textures loaded here may be bogus; do this later
-    ;; (when (field-value :image self)
-    ;;   (resize-to-image self))))
+  (setf (uuid self) (make-uuid))
+  (register-uuid self))
 
 (define-method after-revive node () nil)
-
-(defmethod initialize ((self node) &key inputs)
-  (with-local-fields
-    (when inputs (setf %inputs inputs))
-    (update-parent-links (find-object self))
-    (update-result-lists (find-object self))))
 
 (defun destroy-maybe (x)
   (when (xelfp x) (destroy (find-object x))))
@@ -477,17 +447,14 @@ See also `drop-at'."
 
 (defmethod clear-buffer-data ((self node))
   (clear-saved-location self)
-  (setf (field-value :quadtree-node self) nil)
-  (setf (field-value :parent self) nil))
+  (setf (field-value 'quadtree-node self) nil))
 
 ;;; Defining input events for blocks
 
 ;; see also definition of "task" blocks below.
 
 (define-method initialize-events-table-maybe nil (&optional force)
-  (when (or force 
-	    (not (has-local-value :events self)))
-    (setf %events (make-hash-table :test 'equal))))
+  (setf %events (make-hash-table :test 'equal)))
 
 (define-method bind-event-to-task nil (event-name modifiers task)
   "Bind the described event to invoke the action of the TASK.
@@ -561,7 +528,7 @@ whenever the event (EVENT-NAME . MODIFIERS) is received."
     (bind-event-to-task block 
 			   key
 			   mods
-			   (new 'task :method method-name :target block))))
+			   (new 'task :method-name method-name :target block))))
 
 (define-method bind-event nil (event binding)
   "Bind the EVENT to invoke the action specified in BINDING.
@@ -806,9 +773,7 @@ See `keys.lisp' for the full table of key and modifier symbols.
 	  (unless (running (find-object t2))
 	    (remove-task self (find-object t2))))))))
 
-(define-method update nil ()
-  "Update the simulation one step forward in time."
-  (mapc #'update %inputs))
+(define-method update nil ())
    
 ;;; Block movement
 
@@ -958,49 +923,6 @@ away from this object, in the angle HEADING."
 (define-method visiblep nil ()
   %visible)
 
-;;; Menus and programming-nodes
-
-;; See also library.lisp for the Message nodes.
-
-(define-method make-method-menu-item nil (method target)
-  (assert (and target (keywordp method)))
-  (let ((method-string (pretty-string method)))
-    (list :label method-string
-	  :method method
-	  :target target
-	  :action (new 'task method target))))
-
-(define-method context-menu nil ()
-  (let ((methods nil)
-	(pointer self))
-    ;; gather methods
-    (loop do
-      (when (has-local-value :methods pointer)
-	(setf methods 
-	      (union methods 
-			    (field-value :methods pointer))))
-      (setf pointer (object-super pointer))
-      while pointer)
-    ;; 
-    (let (inputs)
-      (dolist (method (sort methods #'string<))
-	(push (make-method-menu-item self method (find-uuid self)) inputs))
-      (make-menu
-       (list 
-;; :label 
-;; 	     (string-downcase 
-;; 	      (concatenate 'string 
-;; 			   (get-some-object-name self)
-;; 			   " " (object-address-string self)))
-	     :inputs (nreverse inputs)
-	     :pinned nil
-	     :expanded t
-	     :locked t)
-       :target (find-uuid self)))))
-
-(define-method make-reference nil ()
-  (new 'reference self))
-
 ;;; Evaluation and recompilation: compiling node diagrams into equivalent sexps
 
 (define-method evaluate-inputs nil ()
@@ -1030,11 +952,11 @@ all the time."
 current node. Used for taking a count of all the nodes in a tree."
   (cond ((null tree) 0)
 	;; without inputs, just count the root
-	((null (field-value :inputs tree)) 1)
+	((null (field-value 'inputs tree)) 1)
 	;; otherwise, sum up the counts of the children (if any)
 	(t (apply #'+ 1 
 		  (mapcar #'count-tree 
-			  (field-value :inputs tree))))))
+			  (field-value 'inputs tree))))))
 
 ;;; Drawing nodes with complete theme customization
 
@@ -1362,28 +1284,6 @@ Places its top left corner at (X0 Y0), bottom right at (X1 Y1)."
 (defparameter *cursor-blink-color* "cyan"
   "The color of the cursor when blinking.")
 
-(define-method update-cursor-clock nil ()
-  "Update blink timers for any blinking cursor indicators.
-This method allows for configuring blinking items on a system-wide
-scale. See also "
-  (with-fields (cursor-clock) self
-    (decf cursor-clock)
-    (when (> (- 0 *cursor-blink-time*) cursor-clock)
-      (setf cursor-clock *cursor-blink-time*))))
-
-(define-method draw-cursor-glyph node
-    (&optional (x 0) (y 0) (width 2) (height (font-height *font*))
-	       &key color blink)
-  "Draw a graphical cursor at point X, Y of dimensions WIDTH x HEIGHT."
-  (with-fields (cursor-clock) self
-    (let ((color2
-	    (if blink
-		(if (minusp cursor-clock)
-		    *cursor-color*
-		    *cursor-blink-color*)
-		*cursor-color*)))
-      (draw-box x y width height :color (or color color2)))))
-
 (define-method draw-cursor nil (&rest ignore)
   "Draw the cursor. By default, it is not drawn at all."
   nil)
@@ -1571,8 +1471,8 @@ The following node fields will control sprite drawing:
       ;; 	    (dolist (input inputs)
       ;; 	      (move-to input (+ left dash) y)
       ;; 	      (layout input)
-      ;; 	      (setf max-height (max max-height (field-value :height input)))
-      ;; 	      (incf left (dash 1 (field-value :width input))))
+      ;; 	      (setf max-height (max max-height (field-value 'height input)))
+      ;; 	      (incf left (dash 1 (field-value 'width input))))
       ;; 	    ;; now update own dimensions
       ;; 	    (setf width (dash 1 (- left x)))
       ;; 	    (setf height (+  (if (null inputs)
@@ -1626,14 +1526,14 @@ The order is (TOP LEFT RIGHT BOTTOM)."
   (values %x %y))
 
 (define-method left-of nil (&optional other)
-  (let ((width (field-value :width (or other self))))
+  (let ((width (field-value 'width (or other self))))
     (values (- %x width) %y)))
   
 (define-method right-of nil ()
   (values (+ %x %width) %y))
 
 (define-method above nil (&optional other)
-  (let ((height (field-value :height (or other self))))
+  (let ((height (field-value 'height (or other self))))
     (values (- %x %width) %y)))
   
 (define-method below nil ()
@@ -1697,11 +1597,11 @@ The order is (TOP LEFT RIGHT BOTTOM)."
 ;; (define-method contained-in-bounding-box nil (bounding-box)
 ;;   (bounding-box-contains bounding-box (multiple-value-list (bounding-box self))))
 
-(defmethod colliding-with ((self node) (thing node))
+(defmethod colliding-with-p ((self node) (thing node))
   "Return non-nil if this node collides with THING."
   (multiple-value-bind (top left right bottom) 
       (bounding-box thing)
-    (colliding-with-bounding-box self top left right bottom)))
+    (colliding-with-bounding-box-p self top left right bottom)))
 
 (define-method direction-to-thing nil (thing)
   "Return a direction keyword approximating the direction to THING."
@@ -1744,22 +1644,22 @@ Note that the center-points of the objects are used for comparison."
 
 ;;; Simple scheduling mechanisms
 
-(defblock task method target arguments clock subtasks finished)
+(defblock task method-name nil target nil arguments nil clock nil subtasks nil finished nil)
 
-(defmethod initialize ((self task) 
-		       &key method target arguments clock subtasks)
-    (assert method)
+(defmethod initialize-instance :after ((self task) 
+		       &key method-name target arguments clock subtasks)
+    (assert method-name)
     (assert (listp arguments))
     (assert (xelfp target))
     (assert (or (eq t clock)
 		(null clock)
 		(and (integerp clock)
 		     (plusp clock))))
-    (setf (field-value :method self) method
-	  (field-value :arguments self) arguments
-	  (field-value :target self) (find-uuid target)
-	  (field-value :subtasks self) subtasks
-	  (field-value :clock self) clock))
+    (setf (field-value 'method-name self) method-name
+	  (field-value 'arguments self) arguments
+	  (field-value 'target self) (find-uuid target)
+	  (field-value 'subtasks self) subtasks
+	  (field-value 'clock self) clock))
 
 (define-method finish task ()
   (setf %finished t))
@@ -1767,10 +1667,10 @@ Note that the center-points of the objects are used for comparison."
 (define-method evaluate task ()
   (with-local-fields
     (when (xelfp %target)
-      (apply (symbol-function %method) (find-object %target) %arguments))))
+      (apply (symbol-function %method-name) (find-object %target) %arguments))))
 
 (define-method running task ()
-  (with-fields (method target arguments clock finished) self
+  (with-fields (method-name target arguments clock finished) self
     (cond 
       ;; if finished, quit now.
       (finished nil)

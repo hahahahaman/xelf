@@ -25,8 +25,7 @@
 (defblock buffer
   (name :initform nil)
   (buffer-name :initform "*untitled-buffer*")
-  (variables :initform nil 
-	     :documentation "Hash table mapping values to values, local to the current buffer.")
+  (variables :initform nil)
   (cursor :initform nil)
   (followed-object :initform nil)
   (background-image :initform nil)
@@ -41,7 +40,7 @@
   (field-of-view :initform *field-of-view*)
   (was-key-repeat-p :initform nil)
   ;; objects and collisions
-  (objects :initform nil :documentation "A hash table with all the buffer's objects.")
+  (objects :accessor objects :initform nil)
   (quadtree :initform nil)
   (quadtree-depth :initform 4)
   ;; viewing window 
@@ -66,30 +65,19 @@
   (region-start :initform nil)
   ;; dragging info
   already-failed
-  (drag :initform nil 
-  	:documentation "Block being dragged, if any.")
+  (drag :initform nil)
   (drag-button :initform nil)
-  (hover :initform nil
-	 :documentation "Block being hovered over, if any.")
-  (highlight :initform nil
-	     :documentation "Block being highlighted, if any.")
-  (ghost :initform nil
-	 :documentation "Dummy block to hold original place of currently dragged block onscreen.")
-  (focused-block :initform nil
-		 :documentation "Block having current input focus, if any.")
+  (hover :initform nil)
+  (highlight :initform nil)
+  (ghost :initform nil)
+  (focused-block :initform nil)
   (last-focus :initform nil)
-  (click-start :initform nil
-	      :documentation "A cons (X . Y) of widget location at moment of click.")
-  (click-start-block :initform nil
-		     :documentation "The block indicated at the beginning of a drag.")
-  (drag-origin :initform nil
-	       :documentation "The parent block originally holding the dragged block.")
-  (object-p :initform nil
-		 :documentation "When non-nil, the dragged object is in the buffer.")
-  (drag-start :initform nil
-	      :documentation "A cons (X . Y) of widget location at start of dragging.")
-  (drag-offset :initform nil
-	       :documentation "A cons (X . Y) of relative mouse click location on dragged block."))
+  (click-start :initform nil)
+  (click-start-block :initform nil)
+  (drag-origin :initform nil)
+  (object-p :initform nil)
+  (drag-start :initform nil)
+  (drag-offset :initform nil))
 
 (defun uniquify-buffer-name (name)
   (let ((n 1)
@@ -170,7 +158,7 @@
 	  do (make-halo thing))))
 
 (define-method get-objects buffer ()
-  (loop for object being the hash-values in (field-value :objects self)
+  (loop for object being the hash-values in (field-value 'objects self)
 	when (xelfp object) collect (find-object object)))
 
 (defun z-sort (objects)
@@ -180,9 +168,9 @@
   (if (not (xelfp (current-buffer)))
       0
       (let ((z 0))
-	(loop for object being the hash-values in (field-value :objects (current-buffer)) 
+	(loop for object being the hash-values in (field-value 'objects (current-buffer)) 
 	      do (when (find-object object t)
-		   (setf z (max z (field-value :z (find-object object))))))
+		   (setf z (max z (field-value 'z (find-object object))))))
 	z)))
 
 (define-method has-object-p buffer (thing)
@@ -192,8 +180,8 @@
 (define-method region-objects buffer ()
   (when %region
     (destructuring-bind (x y width height) %region
-      (loop for thing being the hash-values of (field-value :objects self)
-	    when (colliding-with-rectangle thing y x width height)
+      (loop for thing being the hash-values of (field-value 'objects self)
+	    when (colliding-with-rectangle-p thing y x width height)
 	      collect thing))))
 
 (define-method select-region buffer ()
@@ -218,11 +206,11 @@
     (or (null objects)
 	(zerop (hash-table-count objects)))))
 
-(defmethod initialize ((self buffer) &key name)
-  (setf (field-value :objects self) (make-hash-table :test 'equal))
+(defmethod initialize-instance :after ((self buffer) &key name)
+  (setf (field-value 'xelf::objects self) (make-hash-table :test 'equal))
   (when name
     (let ((buffer-name (make-buffer-name name)))
-      (setf (field-value :buffer-name self) buffer-name)
+      (setf (field-value 'buffer-name self) buffer-name)
       (add-buffer buffer-name self))))
 
 (define-method rename buffer (name)
@@ -233,8 +221,8 @@
 
 ;; Defining and scrolling the screen viewing window
 
-(defun window-y () (%window-y (current-buffer)))
-(defun window-x () (%window-x (current-buffer)))
+(defun window-y () (field-value 'window-y (current-buffer)))
+(defun window-x () (field-value 'window-x (current-buffer)))
 
 (define-method window-bounding-box buffer ()
   (values (cfloat %window-y)
@@ -311,8 +299,8 @@
   (with-fields (window-x window-y width height) self
     (let ((margin-x (* %horizontal-scrolling-margin *gl-screen-width*))
 	  (margin-y (* %vertical-scrolling-margin *gl-screen-height*))
-	  (object-x (field-value :x object))
-	  (object-y (field-value :y object)))
+	  (object-x (field-value 'x object))
+	  (object-y (field-value 'y object)))
     ;; are we outside the "comfort zone"?
     (if (or 
 	 ;; too far left
@@ -379,10 +367,10 @@
 	  (declare (simple-string uuid))
 	(setf (gethash uuid %objects) uuid))
 	(when (and (numberp x) (numberp y))
-	  (setf (%x object) (cfloat x)
-		(%y object) (cfloat y)))
+	  (setf (x object) (cfloat x)
+		(y object) (cfloat y)))
 	(when (numberp z)
-	  (setf (%z object) (cfloat z)))
+	  (setf (z object) (cfloat z)))
 	(clear-saved-location object)
 	(quadtree-insert-maybe object)
 	(after-add-hook object)))))
@@ -552,7 +540,7 @@ slowdown. See also quadtree.lisp")
     (with-fields (x y) object
       (clear-buffer-data object)
       (with-buffer self
-	(with-quadtree (%quadtree self)
+	(with-quadtree (field-value 'quadtree self)
 	  (add-object self object)
 	  (move-to object (+ x dx) (+ y dy)))))))
   
@@ -629,7 +617,7 @@ slowdown. See also quadtree.lisp")
       ;; 		  (resize self right bottom)))))))))
 
 (defmacro with-new-buffer (&body body)
-  `(with-buffer (clone *buffer-prototype*) 
+  `(with-buffer (make-instance 'buffer)
      ,@body
      (adjust-bounding-box-maybe (current-buffer))))
 
@@ -694,13 +682,13 @@ slowdown. See also quadtree.lisp")
     (compose buffer1
 	     (translate buffer2
 			0 
-			(field-value :height buffer1)))))
+			(field-value 'height buffer1)))))
 
 (defun compose-beside (&optional buffer1 buffer2)
   (when (and buffer1 buffer2)
     (compose buffer1 
 	     (translate buffer2
-			(field-value :width buffer1)
+			(field-value 'width buffer1)
 			0))))
 
 (defun stack-vertically (&rest buffers)
@@ -751,7 +739,7 @@ slowdown. See also quadtree.lisp")
   (multiple-value-bind (top left right bottom) (window-bounding-box self)
     (loop for object being the hash-keys of %objects do
       ;; only draw onscreen objects
-      (when (colliding-with-bounding-box (find-object object) top left right bottom)
+      (when (colliding-with-bounding-box-p (find-object object) top left right bottom)
 	(draw (find-object object))
 	(after-draw-object self (find-object object))))))
 
@@ -759,11 +747,6 @@ slowdown. See also quadtree.lisp")
   (with-buffer self
     (with-fields (objects width focused-block height
 				background-image background-color) self
-      (unless %parent 
-	(project-window self))
-      ;; (when %parent 
-      ;; 	(gl:push-matrix)
-      ;; 	(gl:translate %x %y 0))
       ;; draw background 
       (if background-image
 	  (draw-image background-image 0 0 :height height :width width)
@@ -811,7 +794,7 @@ slowdown. See also quadtree.lisp")
 	  ;; detect collisions
 	  (loop for object being the hash-values in objects do
 	    (when (xelfp object)
-	      (unless (eq :passive (field-value :collision-type object))
+	      (unless (eq :passive (field-value 'collision-type (find-object object)))
 		(quadtree-collide (find-object object))))))))))
     
 (define-method evaluate buffer ()
@@ -826,17 +809,6 @@ slowdown. See also quadtree.lisp")
 	  ;; %width *gl-screen-width* 
 	  ;; %height *gl-screen-height*)
     (mapc #'layout %inputs)))
-  
-(define-method handle-event buffer (event)
-  (with-fields (cursor quadtree focused-block) self
-    (with-buffer self
-      (or (call-next-method event)
-	  (let ((thing 
-		  focused-block))
-	      (prog1 t 
-		(when thing 
-		  (with-quadtree quadtree
-		    ))))))))
 
 ;;; Hit testing
 
@@ -923,10 +895,10 @@ block found, or nil if none is found."
       (when drag-origin
 	  ;; parent might produce a new object
 	(unplug-from-parent block))
-      (let ((dx (field-value :x block))
-	    (dy (field-value :y block))
-	    (dw (field-value :width block))
-	    (dh (field-value :height block)))
+      (let ((dx (field-value 'x block))
+	    (dy (field-value 'y block))
+	    (dw (field-value 'width block))
+	    (dh (field-value 'height block)))
 	(with-fields (x y width height) ghost
 	  ;; remember the relative mouse coordinates from the time the
 	  ;; user began dragging, so that the block being dragged is not

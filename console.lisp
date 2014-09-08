@@ -225,7 +225,7 @@ Do not set this variable directly from a project; instead, call
     (let ((x0 (truncate x))
 	  (y0 (truncate y)))
       (labels ((try (b)
-		 (send :hit b x0 y0)))
+		 (hit b x0 y0)))
 	(let ((parent (find-if #'try blocks :from-end t)))
 	  (when parent
 	    (try parent)))))))
@@ -888,7 +888,7 @@ display."
 						      (window-pointer-y) 
 						      *blocks*)))
 			       (when block
-				 (send :handle-point-motion block
+				 (handle-point-motion block
 				       (window-pointer-x)
 				       (window-pointer-y)))))
 	(:mouse-button-down-event (:button button :x x :y y)
@@ -898,7 +898,7 @@ display."
 						(window-pointer-y)
 						*blocks*)))
 				    (when block
-				      (send :press block
+				      (press block
 					    (window-pointer-x)
 					    (window-pointer-y)
 					    button))))
@@ -909,7 +909,7 @@ display."
 					      (window-pointer-y)
 					      *blocks*)))
 				  (when block
-				    (send :release block
+				    (release block
 					  (window-pointer-x)
 					  (window-pointer-y)
 					  button))))
@@ -1424,7 +1424,7 @@ If a record with that name already exists, it is replaced."
 
 (defmacro define (name &body body)
   (if (symbolp name) 
-      `(defblock (,name xblock) ,@body)
+      `(defblock (,name node) ,@body)
       `(defblock ,name ,@body)))
 
 (defun load-project (&optional (project *project*) parameters)
@@ -2678,8 +2678,8 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
   (initialize-colors)
   (initialize-sound)
   (initialize-database)
-  (initialize-clipboard-maybe :force)
-  (initialize-buffers)
+  ;;(initialize-clipboard-maybe :force)
+  ;; (initialize-buffers)
   (load-standard-resources)
   (setf *next-update-hook* nil)
   (sdl:enable-unicode)
@@ -2691,7 +2691,6 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
     (clear-text-image-cache)
     (clear-cached-font-metrics)
     ;; (delete-all-textures)
-    (purge-all-objects)
     (delete-all-resources)
     (setf *buffers* nil)
     (sdl-mixer:halt-music)
@@ -2712,11 +2711,6 @@ The BODY should include a call to START-SESSION."
      (start-up)
      ,@body
      (shut-down)))
-
-(defun edit (project)
-  (with-session
-      (load-project-image project)
-    (start-session)))
 
 (defvar *buffer-history* nil)
 
@@ -2739,8 +2733,6 @@ The BODY should include a call to START-SESSION."
   (let ((buffer2 (find-object buffer)))
     (setf *buffer* buffer2)
     (start-alone buffer2)))
-
-(defun update-parameters () nil)
 
 ;;; Emacs integration
 

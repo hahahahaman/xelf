@@ -113,12 +113,7 @@ more information.
 
 (defclass xnode ()
   ((uuid :initform nil :accessor uuid :initarg :uuid)))
-   
-(defmethod initialize ((self xnode) &key) nil)
 
-(defmethod initialize-instance :after ((self xnode) &key)
-  (initialize self))
- 
 (defun object-p (x)
   (typep x 'xelf:xnode))
 
@@ -273,6 +268,14 @@ more information.
 	     ;; strip percent sign 
 	    (subseq (symbol-name symbol) 1)))))
 
+(defun field-value (field object)
+  (slot-value object field))
+
+(defun set-field-value (field object value)
+  (setf (slot-value object field) value))
+
+(defsetf field-value set-field-value)
+
 (defun make-accessor-flet-clause (symbol)
   `(,symbol (thing)
 	    (field-value ,symbol thing)))
@@ -347,7 +350,7 @@ See also `define-prototype'.
 (defun plist-to-descriptors (plist)
   (let (descriptors)
     (loop while plist do
-      (let* ((field (make-non-keyword (pop plist)))
+      (let* ((field (pop plist))
 	     (value (pop plist)))
 	(push (list field :initform value :initarg (make-keyword field) :accessor field)
 	      descriptors)))
@@ -360,7 +363,7 @@ See also `define-prototype'.
 				  documentation
 				  &allow-other-keys)
 			    &body declarations)
-  (let* ((pre-descriptors (if (keywordp (first declarations))
+  (let* ((pre-descriptors (if (symbolp (first declarations))
 			      (plist-to-descriptors declarations)
 			      declarations))
 	 (descriptors (mapcar #'transform-declaration 

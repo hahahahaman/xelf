@@ -52,9 +52,9 @@
 						       (zero-or-one "(")
 						       (group (one-or-more (or "-" (any word))))))
 					2))
-		(imenu-add-menubar-index)))
-  (defadvice slime-compile-defun (after xelf activate)
-    (eval-in-cl "(xelf:update-parameters)")))
+		(imenu-add-menubar-index))))
+  ;; (defadvice slime-compile-defun (after xelf activate)
+  ;;   (eval-in-cl "(xelf:update-parameters)")))
 
 ;; (xelf-insinuate-lisp)
 

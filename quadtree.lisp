@@ -149,22 +149,22 @@ NODE, if any."
 	       :test 'eq)
       ;; save pointer to node so we can avoid searching when it's time
       ;; to delete (i.e. move) the object later.
-      (set-field-value :quadtree-node object node))))
+      (set-field-value 'quadtree-node object node))))
 
 (defmethod quadtree-delete ((object0 xnode) &optional (tree *quadtree*))
   (let ((object (find-object object0)))
     ;; grab the cached quadtree node
-    (let ((node (or (field-value :quadtree-node object) tree)))
+    (let ((node (or (field-value 'quadtree-node object) tree)))
       (setf (quadtree-objects node)
 	    (delete object (quadtree-objects node) :test 'eq))
-      (set-field-value :quadtree-node object nil))))
+      (set-field-value 'quadtree-node object nil))))
 
 (defmethod quadtree-insert-maybe ((object xnode) &optional (tree *quadtree*))
   (when tree
     (quadtree-insert object tree)))
 
 (defmethod quadtree-delete-maybe ((object xnode) &optional (tree *quadtree*))
-  (when (and tree (field-value :quadtree-node object))
+  (when (and tree (field-value 'quadtree-node object))
     (quadtree-delete object tree)))
 
 (defun quadtree-map-collisions (top left right bottom processor &optional (tree *quadtree*))
@@ -172,7 +172,7 @@ NODE, if any."
    top left right bottom
    #'(lambda (node)
        (dolist (object (quadtree-objects node))
-	 (when (colliding-with-bounding-box object top left right bottom)
+	 (when (colliding-with-bounding-box-p object top left right bottom)
 	   (funcall processor object))))
    tree))
 
@@ -183,21 +183,21 @@ NODE, if any."
      #'(lambda (thing)
 	 (when (and (xelfp thing) 
 		    (xelfp object)
-		    (field-value :collision-type thing)
-		    (colliding-with object thing)
+		    (field-value 'collision-type thing)
+		    (colliding-with-p object thing)
 		    (not (object-eq object thing)))
 	   (with-quadtree tree
-	     (do-collision object thing))))
+	     (handle-collision object thing))))
      tree)))
 
 (defun find-bounding-box (objects)
   ;; calculate the bounding box of a list of objects
-  (labels ((left (thing) (field-value :x thing))
-	   (right (thing) (+ (field-value :x thing)
-			     (field-value :width thing)))
-	   (top (thing) (field-value :y thing))
-	   (bottom (thing) (+ (field-value :y thing)
-			      (field-value :height thing))))
+  (labels ((left (thing) (field-value 'x thing))
+	   (right (thing) (+ (field-value 'x thing)
+			     (field-value 'width thing)))
+	   (top (thing) (field-value 'y thing))
+	   (bottom (thing) (+ (field-value 'y thing)
+			      (field-value 'height thing))))
     ;; let's find the bounding box.
     (values (reduce #'min (mapcar #'top objects))
 	    (reduce #'min (mapcar #'left objects))
@@ -209,7 +209,7 @@ NODE, if any."
 		   (list set)
 		   (hash-table (loop for object being the hash-keys in set collect object)))))
     (dolist (object objects)
-      (set-field-value :quatree-node object nil)
+      (set-field-value 'quadtree-node object nil)
       (quadtree-insert object quadtree))))
 
 ;;; quadtree.lisp ends here
