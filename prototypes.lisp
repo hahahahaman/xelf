@@ -167,8 +167,7 @@ more information.
   (when (not (null thing))
     (let ((result 
 	    (etypecase thing
-	      (string (or (find-object-by-uuid thing :noerror)
-			  (find-prototype thing :noerror)))
+	      (string (find-object-by-uuid thing :noerror))
 	      (xnode thing))))
       (prog1 result
 	(unless no-error

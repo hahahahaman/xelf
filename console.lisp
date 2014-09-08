@@ -2288,7 +2288,7 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
 	(cy (- (+ y (/ height 2)) (window-y)))
 	(hh (/ height 2))
 	(hw (/ width 2)))
-    ;; (gl:matrix-mode :modelview)
+    (gl:matrix-mode :modelview)
     (gl:with-pushed-matrix 
       (gl:load-identity)
       (gl:translate cx cy 0)

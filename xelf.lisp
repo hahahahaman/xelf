@@ -54,6 +54,7 @@
 *event-hook*
 *executable*
 *export-formats*
+*font*
 *font-texture-filter*
 *font-texture-scale*
 *frame-rate*
@@ -158,6 +159,7 @@ colliding-with-bounding-box-p
 colliding-with-p
 colliding-with-rectangle-p
 collision-type
+color
 compose
 compose-below
 compose-beside 
@@ -257,12 +259,24 @@ install-quadtree
 is-joystick-event
 is-raw-joystick-event
 joystick-axis-pressed-p
+joystick-axis-pressed-p
+joystick-axis-raw-value
 joystick-axis-raw-value
 joystick-axis-value
 joystick-axis-value
+joystick-axis-value
+joystick-button-pressed-p
 joystick-button-pressed-p
 joystick-button-state
+joystick-button-state
+joystick-buttons
+joystick-event-p
+joystick-left-analog-stick
+joystick-name
 joystick-profile
+joystick-profile
+joystick-right-analog-stick
+joystick-type
 keyboard-down-p
 keyboard-held-p
 keyboard-keys-down
@@ -301,8 +315,6 @@ move-window
 move-window-to
 move-window-to-object
 new
-new
-node
 node 
 normalize-event
 number-of-joysticks
@@ -331,6 +343,7 @@ play-sample
 pnode
 preload-resources
 press
+project-orthographically
 quadtree
 quadtree-collide
 quadtree-delete
