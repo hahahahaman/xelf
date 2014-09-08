@@ -25,9 +25,9 @@ Optionally set the location with X,Y,Z."))
 (defgeneric alternate-tap
   (SELF X Y))
 
-(defgeneric at
+(defgeneric location
   (NODE)
-  (:documentation "Return as values the X,Y position of NODE."))
+  (:documentation "Return as values the X,Y location of NODE."))
 
 (defgeneric backward
   (NODE DISTANCE)

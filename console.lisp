@@ -1428,7 +1428,7 @@ If a record with that name already exists, it is replaced."
       `(defblock ,name ,@body)))
 
 (defun open-project (&optional (project *project*) parameters)
-  ;; don't load database by default
+  "Set the current project name to PROJECT."
   (destructuring-bind (&key (without-database t) with-database) parameters
     (load-project-image project 
 			:without-database without-database

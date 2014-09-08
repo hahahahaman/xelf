@@ -1519,7 +1519,7 @@ The order is (TOP LEFT RIGHT BOTTOM)."
       (values (* half (+ left right))
 	      (* half (+ top bottom))))))
 
-(define-method at nil ()
+(define-method location nil ()
   (values %x %y))
 
 (define-method left-of nil (&optional other)

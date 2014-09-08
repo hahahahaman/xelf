@@ -116,6 +116,6 @@
 
 ;; (document-function 'align-to-pixels t)
 ;; (documentation 'align-to-pixels 'function)
-;; (document-package-to-file :xelf #P"/home/dto/ioweb/xelf-manual.org" :title "Xelf documentation dictionary")
+;; (document-package-to-file :xelf #P"/home/dto/ioweb/reference.org" :title "Xelf documentation reference")
 
 ;;; doc.lisp ends here
