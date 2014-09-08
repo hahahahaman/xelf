@@ -1,9 +1,15 @@
-* TODO fix events not working
+* TODO DEFPROJECT 
 
-* TODO normalize all names to -p predicates, add-object not drop-object
-* TODO replace WITH-FIELDS
-* TODO start fresh and export only needed symbols
-* TODO DEFPROJECT KILL-BUFFER
+
+
+
+* DONE normalize all names to -p predicates, add-object not drop-object
+  CLOSED: [2014-09-08 Mon 04:15]
+* DONE replace WITH-FIELDS
+  CLOSED: [2014-09-08 Mon 04:15]
+* DONE start fresh and export only needed symbols
+  CLOSED: [2014-09-08 Mon 04:15]
+
 * TODO fix coroutine LATER
 * TODO document all exported symbols
 ** TODO document console.lisp and math/utils/quadtree/path

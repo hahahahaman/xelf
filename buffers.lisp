@@ -584,14 +584,15 @@ slowdown. See also quadtree.lisp")
   (if (emptyp self)
       self
       (let ((objects-bounding-box 
-	      (multiple-value-list 
-	       (find-bounding-box (get-objects self)))))
+	      (mapcar #'cfloat
+		      (multiple-value-list 
+		       (find-bounding-box (get-objects self))))))
 	(destructuring-bind (top left right bottom)
-	    objects-bounding-box
+	    (mapcar #'cfloat objects-bounding-box)
 	  ;; are all the objects inside the existing box?
 	  (prog1 self
 	    (unless (bounding-box-contains 
-		     (multiple-value-list (bounding-box self))
+		     (mapcar #'cfloat (multiple-value-list (bounding-box self)))
 		     objects-bounding-box)
 	      (resize self right bottom)))))))
 

@@ -1405,29 +1405,29 @@ If a record with that name already exists, it is replaced."
     (message "Starting without database or variables loading, due to user command."))
   (message "Started up successfully. Indexed ~A resources." (hash-table-count *resources*)))
  
-(defun open-project (name &key (title "Untitled")
-				    (width 640)
-				    (height 480)
-				    (frame-rate 30)
-				    (texture-filter :mipmap)
-				    path
-				    (use-antialiased-text t)
-				    (scale-output-to-window t))
-  (setf *project* (symbol-name name))
-  (setf *screen-height* height)
-  (setf *screen-width* width)
-  (setf *project-path* (or path (search-project-path *project*)))
-  (message "Set project path to ~A for project ~S" name (namestring *project-path*))
-  (setf *use-antialiased-text* use-antialiased-text)
-  (setf *default-texture-filter* texture-filter)
-  (setf *scale-output-to-window* scale-output-to-window))
+;; (defun open-project (name &key (title "Untitled")
+;; 				    (width 640)
+;; 				    (height 480)
+;; 				    (frame-rate 30)
+;; 				    (texture-filter :mipmap)
+;; 				    path
+;; 				    (use-antialiased-text t)
+;; 				    (scale-output-to-window t))
+;;   (setf *project* (symbol-name name))
+;;   (setf *screen-height* height)
+;;   (setf *screen-width* width)
+;;   (setf *project-path* (or path (search-project-path *project*)))
+;;   (message "Set project path to ~A for project ~S" name (namestring *project-path*))
+;;   (setf *use-antialiased-text* use-antialiased-text)
+;;   (setf *default-texture-filter* texture-filter)
+;;   (setf *scale-output-to-window* scale-output-to-window))
 
 (defmacro define (name &body body)
   (if (symbolp name) 
       `(defblock (,name node) ,@body)
       `(defblock ,name ,@body)))
 
-(defun load-project (&optional (project *project*) parameters)
+(defun open-project (&optional (project *project*) parameters)
   ;; don't load database by default
   (destructuring-bind (&key (without-database t) with-database) parameters
     (load-project-image project 
@@ -2646,7 +2646,7 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
     (message line)))
 
 (defun load-standard-resources ()
-  (load-project "standard"))
+  (open-project "standard"))
 
 (defun start-up ()
   #+linux (do-cffi-loading)
@@ -2710,6 +2710,7 @@ The BODY should include a call to START-SESSION."
   `(progn 
      (start-up)
      ,@body
+     (start-session)
      (shut-down)))
 
 (defvar *buffer-history* nil)

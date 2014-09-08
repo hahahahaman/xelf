@@ -293,7 +293,6 @@ left-analog-stick-pressed-p
 left-analog-stick-pressure
 left-of
 left-of-center
-load-project
 load-project-image
 load-resource
 load-user-init-file

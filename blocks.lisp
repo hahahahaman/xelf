@@ -793,13 +793,15 @@ See `keys.lisp' for the full table of key and modifier symbols.
 (define-method set-location nil (x y)
   (setf %x x %y y))
 
-(define-method move-to nil (x y &optional z)
+(defmethod move-to ((node node) x y &optional z)
   "Move this block to a new (X Y) location."
-  (when %quadtree-node (save-location self))
-  (quadtree-delete-maybe self)
-  (setf %x (cfloat x) %y (cfloat y))
-  (when z (setf %z (cfloat z)))
-  (quadtree-insert-maybe self))
+  (when (slot-value node 'quadtree-node)
+    (save-location node))
+  (quadtree-delete-maybe node)
+  (setf (x node) x)
+  (setf (y node) y)
+  (when z (setf (z node) z))
+  (quadtree-insert-maybe node))
 
 ;; (define-method move-to-* block
 ;;     ((x number :default 0) 

@@ -20,6 +20,8 @@
 
 (in-package :xelf)
 
+(defvar *symbol-count* 0)
+
 (defun methodp (symbol)
   (fboundp symbol))
 
@@ -30,39 +32,29 @@
    text)
   (fresh-line stream))
 
-;; (defun document-function (method stream)
-;;   (let* ((symbol (symbol-function method))
-;; 	 (doc (documentation symbol 'function)))
-;;     (when doc
-;;       (heading 2 (format nil "~A (function)" (make-non-keyword method))
-;; 	       stream)
-;;       (heading 3 "Arguments" stream)
-;;       (format stream "~A" (sb-introspect:function-lambda-list method))
-;;       (heading 3 "Documentation" stream)
-;;       (format stream "~A" doc)
-;;       (fresh-line stream))))
-  
 (defun document-function (symbol stream)
   (let ((doc (documentation symbol 'function)))
+    (heading 2 (format nil "~A (~A)" symbol (if (macro-function symbol) "macro"
+						(if (find-class symbol nil)
+						    "class"
+						    "function")))
+	     stream)
+    (heading 3 "Arguments" stream)
+    (format stream "~S" (sb-introspect:function-lambda-list (fdefinition symbol)))
     (when doc
-      (let ((type (cond 
-		    ((macro-function symbol) 'macro)
-		    ((fboundp symbol) 'function))))
-	(heading 2 (format nil "~A (~A)" symbol (string-downcase (symbol-name type)))
-		 stream)
-	(heading 3 "Arguments" stream)
-	(format stream "~S" (sb-introspect:function-lambda-list (fdefinition symbol)))
-	(heading 3 "Documentation" stream)
-	(format stream "~A" doc)
-	(fresh-line stream)))))
+      (incf *symbol-count*)
+      (heading 3 "Documentation" stream)
+      (format stream "~A" doc)
+      (fresh-line stream))))
 
 (defun document-variable (symbol stream)
+  (heading 2 (format nil "~A (variable)" symbol)
+	   stream)
   (when (documentation symbol 'variable)
-    (heading 2 (format nil "~A (variable)" symbol)
-	     stream)
+    (incf *symbol-count*)
     (heading 3 "Documentation" stream)
-    (format stream "~A" (documentation symbol 'variable))
-    (fresh-line stream)))
+    (format stream "~A" (documentation symbol 'variable)))
+  (fresh-line stream))
 
 (defun preamble-file-lines (preamble-file)
   (with-open-file (file preamble-file
@@ -75,7 +67,8 @@
 
 (defun document-package (package-name &key (stream t) preamble-file title)
   (let ((package (find-package package-name))
-	symbols functions variables) 
+	symbols functions variables
+	(*symbol-count* 0))
     ;; header
     (when title 
       (format stream "#+TITLE: ~A" title)
@@ -98,12 +91,15 @@
     (dolist (sym symbols)
       (if (fboundp sym)
 	  (document-function sym stream)
-	  (document-variable sym stream)))))
+	  (document-variable sym stream)))
+    (message "Documented ~S of ~S symbols." *symbol-count* (length symbols))))
 
 (defun document-package-to-file (package-name output-file &key preamble-file title)
   (with-open-file (stream output-file :direction :output :if-exists :supersede)
     (document-package package-name :title title :stream stream :preamble-file preamble-file)))
 
+;; (document-function 'align-to-pixels t)
+;; (documentation 'align-to-pixels 'function)
 ;; (document-package-to-file :xelf #P"/home/dto/ioweb/xelf-manual.org" :title "Xelf documentation dictionary")
 
 ;;; doc.lisp ends here
