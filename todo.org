@@ -1,3 +1,5 @@
+* TODO fix events not working
+
 * TODO normalize all names to -p predicates, add-object not drop-object
 * TODO replace WITH-FIELDS
 * TODO start fresh and export only needed symbols

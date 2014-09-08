@@ -363,17 +363,12 @@
   (with-buffer self
     (let ((object (find-object object0)))
       (with-quadtree %quadtree
-	(let ((uuid (find-uuid object)))
+	(let ((uuid (uuid object)))
 	  (declare (simple-string uuid))
-	(setf (gethash uuid %objects) uuid))
-	(when (and (numberp x) (numberp y))
-	  (setf (x object) (cfloat x)
-		(y object) (cfloat y)))
-	(when (numberp z)
-	  (setf (z object) (cfloat z)))
-	(clear-saved-location object)
-	(quadtree-insert-maybe object)
-	(after-add-hook object)))))
+	  (setf (gethash uuid %objects) uuid)
+	  (clear-saved-location object)
+	  (when (and (numberp x) (numberp y))
+	    (move-to object x y)))))))
       
 (define-method remove-object buffer (object)
   (with-buffer self (quadtree-delete-maybe object))
@@ -382,12 +377,10 @@
 (define-method remove-thing-maybe buffer (object)
   (with-buffer self
     (when (gethash (the simple-string (find-uuid object)) %objects)
-      (remove-object self object))
-    (when (%parent object)
-      (unplug-from-parent object))))
+      (remove-object self object))))
 
 (define-method drop-object buffer (object &optional x y z)
-  (add-object self (find-object object)))
+  (add-object self object x y z))
 
 (define-method finish-drag nil ())
 
@@ -629,13 +622,11 @@ slowdown. See also quadtree.lisp")
       (destroy buffer))))
 
 (define-method destroy buffer ()
-  (with-fields (objects inputs) self
+  (with-fields (objects) self
     (loop for thing being the hash-keys of objects do
       (destroy (find-object thing))
       (remhash (the simple-string thing) objects))
-    (mapc #'destroy-maybe inputs)
     (mapc #'destroy-maybe %tasks)
-    (setf %inputs nil)
     (setf %quadtree nil)
     (call-next-method self)))
 
@@ -740,8 +731,7 @@ slowdown. See also quadtree.lisp")
     (loop for object being the hash-keys of %objects do
       ;; only draw onscreen objects
       (when (colliding-with-bounding-box-p (find-object object) top left right bottom)
-	(draw (find-object object))
-	(after-draw-object self (find-object object))))))
+	(draw (find-object object))))))
 
 (define-method draw buffer ()
   (with-buffer self
@@ -943,30 +933,30 @@ block found, or nil if none is found."
   (declare (ignore drag))
   (hit-inputs self x y))
 
-(define-method handle-point-motion buffer (mouse-x mouse-y)
-  (with-fields (inputs hover highlight click-start drag-offset quadtree
-		       region-start region
-		       drag-start drag) self
-    (with-buffer self
-      (when region-start
-	(update-region self))
-      (with-quadtree quadtree
-	(setf hover nil)
-	(drag-maybe self mouse-x mouse-y)
-	(if drag
-	    ;; we're in a mouse drag.
-	    (destructuring-bind (ox . oy) drag-offset
-	      (let ((target-x (- mouse-x ox))
-		    (target-y (- mouse-y oy)))
-		(let ((candidate (drag-candidate self drag target-x target-y)))
-		  ;; obviously we dont want to plug a block into itself.
-		  (setf hover (if (object-eq drag candidate) nil
-				  (find-uuid candidate)))
-		  ;; keep moving along with the mouse
-		  (drag drag target-x target-y))))
-	    ;; not dragging, just moving
-	    (progn
-	      (setf highlight (find-uuid (hit-inputs self mouse-x mouse-y)))))))))
+(define-method handle-point-motion buffer (mouse-x mouse-y))
+  ;; (with-fields (hover highlight click-start drag-offset quadtree
+  ;; 		       region-start region
+  ;; 		       drag-start drag) self
+  ;;   (with-buffer self
+  ;;     (when region-start
+  ;; 	(update-region self))
+  ;;     (with-quadtree quadtree
+  ;; 	(setf hover nil)
+  ;; 	(drag-maybe self mouse-x mouse-y)
+  ;; 	(if drag
+  ;; 	    ;; we're in a mouse drag.
+  ;; 	    (destructuring-bind (ox . oy) drag-offset
+  ;; 	      (let ((target-x (- mouse-x ox))
+  ;; 		    (target-y (- mouse-y oy)))
+  ;; 		(let ((candidate (drag-candidate self drag target-x target-y)))
+  ;; 		  ;; obviously we dont want to plug a block into itself.
+  ;; 		  (setf hover (if (object-eq drag candidate) nil
+  ;; 				  (find-uuid candidate)))
+  ;; 		  ;; keep moving along with the mouse
+  ;; 		  (drag drag target-x target-y))))
+  ;; 	    ;; not dragging, just moving
+  ;; 	    (progn
+  ;; 	      (setf highlight (find-uuid (hit-inputs self mouse-x mouse-y)))))))))
     ;; (when (null highlight)
   ;;   (when *shell*
   ;;     (with-buffer self (close-menus *shell*))))))))

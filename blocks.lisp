@@ -239,14 +239,9 @@ streams as a basis.
 
 (define-method destroy nil ()
   "Throw away this block."
-  (mapc #'destroy-maybe %inputs)
   (mapc #'destroy-maybe %tasks)
-  (when %halo (destroy %halo))
-  (when %parent 
-    (unplug-from-parent self))
   (destroy-events self)
   (remove-thing-maybe (current-buffer) self)
-  (setf %garbagep t)
   (when %quadtree-node 
     (quadtree-delete self %quadtree-node))
   (setf %quadtree-node nil)
@@ -454,7 +449,8 @@ See also `drop-at'."
 ;; see also definition of "task" blocks below.
 
 (define-method initialize-events-table-maybe nil (&optional force)
-  (setf %events (make-hash-table :test 'equal)))
+  (when (null (field-value 'events self))
+    (setf (field-value 'events self) (make-hash-table :test 'equal))))
 
 (define-method bind-event-to-task nil (event-name modifiers task)
   "Bind the described event to invoke the action of the TASK.
@@ -497,9 +493,8 @@ any)."
 		    ;; just search event as-is
 		    (gethash event events)))))
 	(if task
-	    (prog1 (values (find-object task)
-			   (evaluate (find-object task)))
-	      (invalidate-layout self))
+	    (values (find-object task)
+		     (evaluate (find-object task)))
 	    (values nil nil))))))
 
 (define-method handle-text-event nil (event)
@@ -1665,9 +1660,8 @@ Note that the center-points of the objects are used for comparison."
   (setf %finished t))
 
 (define-method evaluate task ()
-  (with-local-fields
-    (when (xelfp %target)
-      (apply (symbol-function %method-name) (find-object %target) %arguments))))
+  (when (xelfp %target)
+    (apply (symbol-function %method-name) (find-object %target) %arguments)))
 
 (define-method running task ()
   (with-fields (method-name target arguments clock finished) self
