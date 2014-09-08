@@ -32,9 +32,9 @@
 (defstruct path
   finder ;; Who is finding this path? 
   buffer ;; Pointer to associated buffer. 
-  grid ;; Array of pathfinding data nodes.
+  grid ;; Array of pathfinding data pnodes.
   height width
-  heap ;; Heap array of open pathfinding nodes.
+  heap ;; Heap array of open pathfinding pnodes.
   end ;; Pointer to last heap array position.
   turn ;; Integer turn number
   )
@@ -57,7 +57,7 @@
 	 (<= 0 top bottom height))))
 
 (defun obstructed (path row column)
-  (with-field-values (height width) 
+  (with-fields (height width) 
       (path-buffer path)
     (let ((*quadtree* (%quadtree (path-buffer path)))
 	  (border 8))
@@ -86,11 +86,11 @@
 		  (cfloat vright)
 		  (cfloat vbottom) #'check))))))))))
 
-(defstruct node 
+(defstruct pnode 
   row 
   column
-  parent ; previous node along generated path
-  F ; node score, equal to G + H
+  parent ; previous pnode along generated path
+  F ; pnode score, equal to G + H
   G ; movement cost to move from starting point
     ; to (row, column) along generated path
   old-G ; previous value of G
@@ -115,12 +115,12 @@
       (dotimes (r height)
 	(dotimes (c width)
 	  (setf (aref (path-grid path) r c)
-		(make-node :row r :column c)))))))
+		(make-pnode :row r :column c)))))))
 			       
 ;; The following routines maintain the open and closed sets. We
 ;; use a minheap to store the open set.
 
-(defun open-node (path node)
+(defun open-pnode (path pnode)
   (let* ((path-heap-end (if (null (path-end path))
 			    (setf (path-end path) 1)
 			    (incf (path-end path))))
@@ -128,42 +128,42 @@
  	 (ptr path-heap-end)
 	 (parent nil)
 	 (finished nil))
-    ;; make it easy to check whether node is open
-    (setf (node-open node) (path-turn path))
-    ;; add node to end of heap 
-    (setf (aref path-heap path-heap-end) node)
-    ;; let node rise to appropriate place in heap
+    ;; make it easy to check whether pnode is open
+    (setf (pnode-open pnode) (path-turn path))
+    ;; add pnode to end of heap 
+    (setf (aref path-heap path-heap-end) pnode)
+    ;; let pnode rise to appropriate place in heap
     (while (and (not finished) (< 1 ptr))
       (setf parent (truncate (/ ptr 2)))
       ;; should it rise? 
-      (if (< (node-F node) (node-F (aref path-heap parent)))
-	  ;; yes. swap parent and node
+      (if (< (pnode-F pnode) (pnode-F (aref path-heap parent)))
+	  ;; yes. swap parent and pnode
 	  (progn 
 	    (setf (aref path-heap ptr) (aref path-heap parent))
 	    (setf ptr parent))
 	  ;; no. we're done.
 	  (progn (setf finished t)
-		 (setf (aref path-heap ptr) node))))
-    ;; do we need to set node as the new root? 
+		 (setf (aref path-heap ptr) pnode))))
+    ;; do we need to set pnode as the new root? 
     (if (and (not finished) (equal 1 ptr))
-	(setf (aref path-heap 1) node))))
+	(setf (aref path-heap 1) pnode))))
 
-(defun close-node (path)
+(defun close-pnode (path)
   (let* ((path-heap (path-heap path))
 	 ;; save root of heap to return to caller
-	 (node (aref path-heap 1))
+	 (pnode (aref path-heap 1))
 	 (last nil)
 	 (path-heap-end (path-end path))
 	 (ptr 1)
 	 (left 2)
 	 (right 3)
 	 (finished nil))
-    ;; is there only one node?
+    ;; is there only one pnode?
     (if (equal 1 path-heap-end)
 	(setf (path-end path) nil)
       (if (null path-heap-end)
 	  nil
-	;; remove last node of heap and install as root of heap
+	;; remove last pnode of heap and install as root of heap
 	 (progn
 	   (setf last (aref path-heap path-heap-end))
 	   (setf (aref path-heap 1) last)
@@ -171,15 +171,15 @@
 	   (decf (path-end path))
 	   (decf path-heap-end)
 	   ;;
-	   (setf (node-closed node) (path-turn path))
+	   (setf (pnode-closed pnode) (path-turn path))
 	   ;;
 	   ;; figure out where former last element should go
 	   ;;
 	   (while (and (not finished) (>= path-heap-end right))
 	     ;;
 	     ;; does it need to sink? 
-	     (if (and (< (node-F last) (node-F (aref path-heap left)))
-		      (< (node-F last) (node-F (aref path-heap right))))
+	     (if (and (< (pnode-F last) (pnode-F (aref path-heap left)))
+		      (< (pnode-F last) (pnode-F (aref path-heap right))))
 		 ;;
 		 ;; no. we're done
 		 (progn 
@@ -187,8 +187,8 @@
 		   (setf (aref path-heap ptr) last))
 		 ;;
 		 ;; does it need to sink rightward?
-		 (if (>= (node-F (aref path-heap left)) 
-			 (node-F (aref path-heap right)))
+		 (if (>= (pnode-F (aref path-heap left)) 
+			 (pnode-F (aref path-heap right)))
 		     ;;
 		     ;; yes
 		     (progn
@@ -204,46 +204,46 @@
 	   ;;
 	   ;; 
 	   (if (and (equal left path-heap-end)
-		    (> (node-F last)
-		       (node-F (aref path-heap left))))
+		    (> (pnode-F last)
+		       (pnode-F (aref path-heap left))))
 	       (setf ptr left)))))
 	;;
 	;; save former last element in its new place
 	(setf (aref path-heap ptr) last)
-    node))
+    pnode))
 
-;; The ordinary distance algorithm is used to score nodes.
+;; The ordinary distance algorithm is used to score pnodes.
 
-(defun score-node (path node path-turn-number new-parent-node goal-row goal-column)
-  "Update scores for NODE. Update heap position if necessary."
-  (let* ((direction (direction-to (node-column new-parent-node)
-				  (node-row new-parent-node)
-				  (node-column node)
-				  (node-row node)))
-	 (G (+ 1 (node-G new-parent-node)))
+(defun score-pnode (path pnode path-turn-number new-parent-pnode goal-row goal-column)
+  "Update scores for PNODE. Update heap position if necessary."
+  (let* ((direction (direction-to (pnode-column new-parent-pnode)
+				  (pnode-row new-parent-pnode)
+				  (pnode-column pnode)
+				  (pnode-row pnode)))
+	 (G (+ 1 (pnode-G new-parent-pnode)))
 	 
- 	 (H (* (distance (node-column node)
-			 (node-row node)
+ 	 (H (* (distance (pnode-column pnode)
+			 (pnode-row pnode)
 			 goal-column goal-row)
-		;; (max (abs (- (node-row node) goal-row))
-		;;     (abs (- (node-column node) goal-column)))
+		;; (max (abs (- (pnode-row pnode) goal-row))
+		;;     (abs (- (pnode-column pnode) goal-column)))
 	       1))
 	 (F (+ G H)))
     ;; 
-    ;; is this a new node, i.e. not on the open list? 
-    (if (not (equal path-turn-number (node-open node)))
+    ;; is this a new pnode, i.e. not on the open list? 
+    (if (not (equal path-turn-number (pnode-open pnode)))
 	;;
 	;; yes, update its scores and parent
 	(progn 
-	  (setf (node-G node) G)
-	  (setf (node-H node) H)
-	  (setf (node-F node) F)
-	  (setf (node-parent node) new-parent-node))
+	  (setf (pnode-G pnode) G)
+	  (setf (pnode-H pnode) H)
+	  (setf (pnode-F pnode) F)
+	  (setf (pnode-parent pnode) new-parent-pnode))
       ;;
-      ;; no, it's already open. is the path through NEW-PARENT-NODE
+      ;; no, it's already open. is the path through NEW-PARENT-PNODE
       ;; better than through the old parent?
-      (if (and (node-G node)
-	       (< G (node-G node)))
+      (if (and (pnode-G pnode)
+	       (< G (pnode-G pnode)))
 	  ;;
 	  ;; yes. update scores and re-heap.
 	  (let ((heap (path-heap path))
@@ -251,17 +251,17 @@
 		(ptr 1)
 		(par nil)
 		(finished nil))
-	    (setf (node-G node) G)
-	    (setf (node-H node) H)
-	    (setf (node-F node) F)
-	    (setf (node-parent node) new-parent-node)
+	    (setf (pnode-G pnode) G)
+	    (setf (pnode-H pnode) H)
+	    (setf (pnode-F pnode) F)
+	    (setf (pnode-parent pnode) new-parent-pnode)
 	    ;;
 	    ;; Better score found.
 	    ;; 
-	    ;; find current location of node in heap
+	    ;; find current location of pnode in heap
 	    (while (and (not finished) (< ptr heap-end))
-	      (when (equal node (aref heap ptr))
-		;; Found node.
+	      (when (equal pnode (aref heap ptr))
+		;; Found pnode.
 		;;
 		;; its score could only go down, so move it up in the
 		;; heap if necessary.
@@ -269,39 +269,39 @@
 		  (setf par (truncate (/ ptr 2)))
 		  ;;
 		  ;; should it rise? 
-		  (if (< (node-F node) (node-F (aref heap par)))
+		  (if (< (pnode-F pnode) (pnode-F (aref heap par)))
 		      ;;
 		      ;; yes. swap it with its parent
 		      (progn
 			(setf (aref heap ptr) (aref heap par))
 			(setf ptr par))
 		    ;;
-		    ;; no, we are done. put node in its new place.
+		    ;; no, we are done. put pnode in its new place.
 		      (progn (setf finished t)
-			     (setf (aref heap ptr) node))))
+			     (setf (aref heap ptr) pnode))))
 		;;
-		;; do we need to install the new node as heap root?
+		;; do we need to install the new pnode as heap root?
 		(when (and (not finished) (equal 1 ptr))
-		  (setf (aref heap 1) node)))
+		  (setf (aref heap 1) pnode)))
 	      ;;
-	      ;; keep scanning heap for the node
+	      ;; keep scanning heap for the pnode
 	      (incf ptr)))
 	;;
 	;; new score is not better. do nothing.
-					;(setf (node-parent node) new-parent-node)
+					;(setf (pnode-parent pnode) new-parent-pnode)
 	  ))))
 	      
-(defun node-successors (path node path-turn-number goal-row goal-column)
+(defun pnode-successors (path pnode path-turn-number goal-row goal-column)
   (delete nil 
 	(mapcar 
 	 #'(lambda (direction)
 	     (let ((grid (path-grid path))
-		   (new-G (+ 1 (node-G node)))
+		   (new-G (+ 1 (pnode-G pnode)))
 		   (successor nil))
 	       (multiple-value-bind (r c) 
 		   (step-in-direction 
-		    (node-row node)
-		    (node-column node)
+		    (pnode-row pnode)
+		    (pnode-column pnode)
 		    direction)
 		 ;; 
 		 (if (array-in-bounds-p grid r c)
@@ -313,12 +313,12 @@
 			    (and (equal r goal-row) (equal c goal-column))
 			    ;; ignore non-walkable squares and closed squares,
 			    (and (not (obstructed path r c))
-				 (not (equal path-turn-number (node-closed successor)))))
+				 (not (equal path-turn-number (pnode-closed successor)))))
 			   ;; if successor is open and existing path is better
 			   ;; or as good as new path, destroy the successor
 			   ;; if successor is not open, proceed 
-			   (if (equal path-turn-number (node-open successor))
-			       (if (< new-G (node-G successor))
+			   (if (equal path-turn-number (pnode-open successor))
+			       (if (< new-G (pnode-G successor))
 				   successor
 				   nil)
 			       successor)
@@ -337,7 +337,7 @@
   "Find a path from the starting point to the goal in PATH using A*.
 Returns a list of directional keywords an AI can follow to reach
 the goal."
-  (let* ((selected-node nil)
+  (let* ((selected-pnode nil)
 	 (path-turn-number (incf (path-turn path)))
 	 (pos nil)
 	 (found nil)
@@ -347,7 +347,7 @@ the goal."
 	 (buffer-width (%width (path-buffer path)))
 	 (cx (/ buffer-width path-width))
 	 (cy (/ buffer-height path-height))
-	 (target-node nil)
+	 (target-pnode nil)
 	 (coordinates nil)
 	 (F 0) (G 0) (H 0)
 	 (starting-row (round (/ y0 cy)))
@@ -359,56 +359,56 @@ the goal."
 	(progn 
 	  ;; reset the pathfinding heap
 	  (setf (path-end path) nil)
-	  ;; add the starting node to the open set
+	  ;; add the starting pnode to the open set
 	  (setf G 0)
 	  (setf H (max (abs (- starting-row goal-row))
 		       (abs (- starting-column goal-column))))
 	  (setf F (+ G H))
-	  (setf selected-node (make-node :row starting-row 
+	  (setf selected-pnode (make-pnode :row starting-row 
 					 :column starting-column
 					 :old-G 0
 					 :parent nil :G G :F F :H H))
 	  ;;
-	  (open-node path selected-node)
+	  (open-pnode path selected-pnode)
 	  ;; start pathfinding
-	  (setf target-node
+	  (setf target-pnode
 		(block finding
-		  ;; select and close the node with smallest F score
-		  (while (setf selected-node (close-node path))
+		  ;; select and close the pnode with smallest F score
+		  (while (setf selected-pnode (close-pnode path))
 		    ;; did we fail to reach the goal? 
-		    (when (null selected-node)
+		    (when (null selected-pnode)
 		      (return-from finding nil))
 		    ;; are we at the goal square?
-		    (when (and (equal goal-row (node-row selected-node))
-			       (equal goal-column (node-column selected-node)))
-		      (return-from finding selected-node))
-		    ;; process adjacent walkable non-closed nodes
-		    (mapc #'(lambda (node)
+		    (when (and (equal goal-row (pnode-row selected-pnode))
+			       (equal goal-column (pnode-column selected-pnode)))
+		      (return-from finding selected-pnode))
+		    ;; process adjacent walkable non-closed pnodes
+		    (mapc #'(lambda (pnode)
 			      ;; is this cell already on the open list?
-			      (if (equal path-turn-number (node-open node))
+			      (if (equal path-turn-number (pnode-open pnode))
 				  ;; yes. update scores if needed
-				  (score-node path node path-turn-number
-					      selected-node goal-row goal-column)
+				  (score-pnode path pnode path-turn-number
+					      selected-pnode goal-row goal-column)
 				  (progn 
 				    ;; it's not on the open list. add it to the open list
-				    (score-node path node path-turn-number selected-node
+				    (score-pnode path pnode path-turn-number selected-pnode
 						goal-row goal-column)
-				    (open-node path node))))
-			  ;; map over adjacent nodes
-			  (node-successors path selected-node 
+				    (open-pnode path pnode))))
+			  ;; map over adjacent pnodes
+			  (pnode-successors path selected-pnode 
 					   path-turn-number
 					   goal-row goal-column)))))
 	  ;; did we find a path? 
-	  (if (node-p target-node)
+	  (if (pnode-p target-pnode)
 	      ;; save the path by walking backwards from the target
-	      (let ((previous-node target-node)
-		    (current-node nil))
-		(while (setf current-node (node-parent previous-node))
+	      (let ((previous-pnode target-pnode)
+		    (current-pnode nil))
+		(while (setf current-pnode (pnode-parent previous-pnode))
 		  ;; what direction do we travel to get from current to previous? 
-		  (push (list (node-row current-node)
-			      (node-column current-node))
+		  (push (list (pnode-row current-pnode)
+			      (pnode-column current-pnode))
 			coordinates)
-		  (setf previous-node current-node))
+		  (setf previous-pnode current-pnode))
 		;; return the finished path
 		coordinates)
 	      ;; return nil

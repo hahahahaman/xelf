@@ -757,7 +757,7 @@ slowdown. See also quadtree.lisp")
 
 (define-method draw buffer ()
   (with-buffer self
-    (with-field-values (objects width focused-block height
+    (with-fields (objects width focused-block height
 				background-image background-color) self
       (unless %parent 
 	(project-window self))
@@ -780,7 +780,7 @@ slowdown. See also quadtree.lisp")
 	do (unless (xelfp object) (remhash (the simple-string object) %objects))))
 
 (define-method update-window-movement buffer ()
-  (with-field-values (followed-object drag cursor) self
+  (with-fields (followed-object drag cursor) self
     (let ((thing (or followed-object
 		     (when (holding-shift) drag)
 		     cursor)))
@@ -789,7 +789,7 @@ slowdown. See also quadtree.lisp")
 	(update-window-glide self)))))
 
 (define-method update buffer ()
-  (with-field-values (objects drag cursor) self
+  (with-fields (objects drag cursor) self
     ;; build quadtree if needed
     (when (null %quadtree)
       (install-quadtree self))
@@ -828,9 +828,9 @@ slowdown. See also quadtree.lisp")
     (mapc #'layout %inputs)))
   
 (define-method handle-event buffer (event)
-  (with-field-values (cursor quadtree focused-block) self
+  (with-fields (cursor quadtree focused-block) self
     (with-buffer self
-      (or (call-next-method self event)
+      (or (call-next-method event)
 	  (let ((thing 
 		  focused-block))
 	      (prog1 t 

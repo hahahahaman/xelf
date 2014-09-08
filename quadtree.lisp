@@ -139,7 +139,7 @@ NODE, if any."
 	 ;; none of them are suitable. stay here
 	 node))))
 
-(defmethod quadtree-insert ((object xelf-object) &optional (tree *quadtree*))
+(defmethod quadtree-insert ((object xnode) &optional (tree *quadtree*))
   (let ((node0 
 	  (multiple-value-bind (top left right bottom) (bounding-box (find-object object))
 	    (quadtree-search top left right bottom tree))))
@@ -151,7 +151,7 @@ NODE, if any."
       ;; to delete (i.e. move) the object later.
       (set-field-value :quadtree-node object node))))
 
-(defmethod quadtree-delete ((object0 xelf-object) &optional (tree *quadtree*))
+(defmethod quadtree-delete ((object0 xnode) &optional (tree *quadtree*))
   (let ((object (find-object object0)))
     ;; grab the cached quadtree node
     (let ((node (or (field-value :quadtree-node object) tree)))
@@ -159,11 +159,11 @@ NODE, if any."
 	    (delete object (quadtree-objects node) :test 'eq))
       (set-field-value :quadtree-node object nil))))
 
-(defmethod quadtree-insert-maybe ((object xelf-object) &optional (tree *quadtree*))
+(defmethod quadtree-insert-maybe ((object xnode) &optional (tree *quadtree*))
   (when tree
     (quadtree-insert object tree)))
 
-(defmethod quadtree-delete-maybe ((object xelf-object) &optional (tree *quadtree*))
+(defmethod quadtree-delete-maybe ((object xnode) &optional (tree *quadtree*))
   (when (and tree (field-value :quadtree-node object))
     (quadtree-delete object tree)))
 

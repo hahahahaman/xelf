@@ -47,10 +47,7 @@
     (substitute #\- #\Space 
 		(string-trim " " string)))))
 
-(define-prototype xblock (:super xelf-object)
-  (excluded-fields :initform '(:quadtree-node))
-  (field-collection-type :initform :list)
-  ;;
+(define-prototype node (:super xnode)
   (cursor-clock :initform 0)
   (hearing-distance :initform nil)
   ;; general information
@@ -103,10 +100,10 @@
   (tasks :initform nil)
   (image :initform nil :documentation "Name of texture to be displayed, if any."))
 
-(defmethod proper-name ((self xblock))
+(defmethod proper-name ((self node))
   (pretty-string (class-name (class-of self))))
 
-(defmethod initialize ((self xblock) &key))
+(defmethod initialize ((self node) &key))
 
 ;;; Defining blocks
 
@@ -122,7 +119,7 @@ The remaining arguments ARGS are field specifiers, each of which is
 either a symbol naming the field, or a list of the form (SYMBOL
 . PROPERTIES) with :INITFORM and :DOCUMENTATION as valid keys."
   (let ((name0 nil)
-	(super0 'xelf:xblock))
+	(super0 'xelf:node))
     (etypecase spec
       (symbol (setf name0 spec))
       (list (destructuring-bind (name super) spec
@@ -134,7 +131,7 @@ either a symbol naming the field, or a list of the form (SYMBOL
 	  (plist-to-descriptors args)
 	  args))))
 
-(defmethod duplicate-safely ((thing xblock))
+(defmethod duplicate-safely ((thing node))
   (let ((dupe (duplicate thing)))
     (prog1 (find-object dupe)
       (setf (field-value :quadtree-node dupe) nil)
@@ -147,7 +144,7 @@ either a symbol naming the field, or a list of the form (SYMBOL
 areas.")
 
 (defun new (class &rest args)
-  (find-object (apply #'clone class args)))
+  (apply #'make-instance class args))
 
 (define-method create nil ()
   (new (find-super (find-object self))))
@@ -161,7 +158,7 @@ areas.")
 (define-method get-field nil (field)
   (field-value field (evaluate self)))
 
-;;; Adding xblocks to the simulation
+;;; Adding nodes to the simulation
 
 (define-method start nil ()
   "Add this block to the simulation so that it receives update events."
@@ -198,14 +195,14 @@ events."
        (%inputs object)))
 
 (defmacro define-block-macro (name 
-     (&key (super 'xblock) fields documentation inputs)
+     (&key (super 'node) fields documentation inputs)
      &body body)
   "Define a new block called NAME according to the given options.
 
 The argument SUPER should be the name (a symbol or string) of the base
 prototype to inherit traits (data and behavior) from. The default is
-`xblock' so that if you don't specify a SUPER argument, you still
-inherit all the inbuilt behaviors of xblocks.
+`node' so that if you don't specify a SUPER argument, you still
+inherit all the inbuilt behaviors of nodes.
 
 The argument FIELDS should be a list of field descriptors, the same as
 would be given to `define-prototype'.
@@ -250,7 +247,7 @@ streams as a basis.
 
 ;;; Block lifecycle
 
-(defmethod initialize-instance :after ((self xblock) &key)
+(defmethod initialize-instance :after ((self node) &key)
   ;; (with-fields (x y) self
     ;; (bind-any-default-events self)
     (register-uuid self))
@@ -259,9 +256,9 @@ streams as a basis.
     ;; (when (field-value :image self)
     ;;   (resize-to-image self))))
 
-(define-method after-revive xblock () nil)
+(define-method after-revive node () nil)
 
-(defmethod initialize ((self xblock) &key inputs)
+(defmethod initialize ((self node) &key inputs)
   (with-local-fields
     (when inputs (setf %inputs inputs))
     (update-parent-links (find-object self))
@@ -346,7 +343,7 @@ engine. The field `%tags' is a set of keyword symbols; if a symbol
 
 (define-method can-accept nil () nil)
 
-(defmethod will-accept ((container xelf-object) (item xelf-object)) nil)
+(defmethod will-accept ((container node) (item node)) nil)
 
 (define-method accept nil (other-block)
   "Try to accept OTHER-BLOCK as a drag-and-dropped input. Return
@@ -376,13 +373,13 @@ non-nil to indicate that the block was accepted, nil otherwise."
     (assert (not (null inputs)))
     (nth (input-position self name) inputs)))
 
-(defun (setf input) (self name xblock)
+(defun (setf input) (self name node)
   (with-fields (inputs) self
     (assert (not (null inputs)))
-    (set-parent xblock self)
+    (set-parent node self)
     (setf (nth (input-position self name) inputs)
 	  ;; store the real link
-  	  (find-object xblock))))
+  	  (find-object node))))
 
 (define-method position-within-parent nil ()
   (input-position %parent self))
@@ -447,7 +444,7 @@ non-nil to indicate that the block was accepted, nil otherwise."
 (define-method after-release-hook nil ())
 
 (define-method unplug nil (input)
-  "Disconnect the block INPUT from this xblock."
+  "Disconnect the block INPUT from this node."
   (with-fields (inputs parent) self
     (assert (contains self input))
     (prog1 input
@@ -478,7 +475,7 @@ See also `drop-at'."
   (assert (and (numberp x) (numberp y)))
   (add-object (current-buffer) new-block x y z))
 
-(defmethod clear-buffer-data ((self xelf-object))
+(defmethod clear-buffer-data ((self node))
   (clear-saved-location self)
   (setf (field-value :quadtree-node self) nil)
   (setf (field-value :parent self) nil))
@@ -736,9 +733,9 @@ See `keys.lisp' for the full table of key and modifier symbols.
 	  (return-from searching this))
 	(setf this next)))))
 
-(defmethod after-add-hook ((self xelf-object)) nil)
+(defmethod after-add-hook ((self node)) nil)
 
-(defmethod after-drag-hook ((self xelf-object)) nil)
+(defmethod after-drag-hook ((self node)) nil)
 
 ;;; Focus events (see also buffers.lisp)
 
@@ -820,7 +817,7 @@ See `keys.lisp' for the full table of key and modifier symbols.
 	%last-y %y
 	%last-z %z))
 
-(defmethod clear-saved-location ((self xelf-object))
+(defmethod clear-saved-location ((self node))
   (with-fields (last-x last-y last-z) self
     (setf last-x nil last-y nil last-z nil)))
 
@@ -861,14 +858,13 @@ See `keys.lisp' for the full table of key and modifier symbols.
 (define-method move-to-depth nil (depth)
   (setf %z (cfloat depth)))
 
-(define-method move-toward xblock 
-    ((direction symbol :default :up) (steps number :initform 1))
+(define-method move-toward node (direction &optional (steps 1))
     "Move this block STEPS steps in the direction given by KEYWORD.
 The KEYWORD must be one of:
 
  :up :down :left :right :upright :upleft :downleft :downright
 "
-  (with-field-values (x y) self
+  (with-fields (x y) self
     (multiple-value-bind (x0 y0)
 	(step-in-direction x y (or direction :up) (or steps 5))
       (move-to self x0 y0))))
@@ -880,11 +876,11 @@ The KEYWORD must be one of:
 (defun heading-degrees (radians)
   (* radians (cfloat (/ 180 pi))))
 
-(define-method (turn-left :category :motion) nil ((degrees number :default 90))
+(define-method turn-left nil (degrees)
   "Turn this object's heading to the left DEGREES degrees."
   (decf %heading (radian-angle degrees)))
 
-(define-method (turn-right :category :motion) nil ((degrees number :default 90))
+(define-method turn-right nil (degrees)
   "Turn this object's heading to the right DEGREES degrees."
   (incf %heading (radian-angle degrees)))
 
@@ -898,17 +894,16 @@ away from this object, in the angle HEADING."
   (multiple-value-bind (x y) (center-point self)
     (step-coordinates x y heading distance)))
 
-(define-method move nil ((heading number :default 0.0)
-			   (distance number :default 1))
+(define-method move nil (heading distance)
   "Move this object DISTANCE units toward the angle HEADING."
   (multiple-value-bind (x0 y0) (step-coordinates %x %y heading distance)
     (move-to self x0 y0)))
 
-(define-method forward nil ((distance number :default 1))
+(define-method forward nil (distance)
   "Move this object DISTANCE units toward its current heading."
   (move self %heading distance))
 
-(define-method backward nil ((distance number :default 1))
+(define-method backward nil (distance)
   "Move this object DISTANCE units away from its current heading."
   (move self (- (* 2 pi) %heading) distance))
 
@@ -963,9 +958,9 @@ away from this object, in the angle HEADING."
 (define-method visiblep nil ()
   %visible)
 
-;;; Menus and programming-xblocks
+;;; Menus and programming-nodes
 
-;; See also library.lisp for the Message xblocks.
+;; See also library.lisp for the Message nodes.
 
 (define-method make-method-menu-item nil (method target)
   (assert (and target (keywordp method)))
@@ -1006,12 +1001,12 @@ away from this object, in the angle HEADING."
 (define-method make-reference nil ()
   (new 'reference self))
 
-;;; Evaluation and recompilation: compiling xblock diagrams into equivalent sexps
+;;; Evaluation and recompilation: compiling node diagrams into equivalent sexps
 
 (define-method evaluate-inputs nil ()
-  "Evaluate all xblocks in %INPUTS from left-to-right. Results are
+  "Evaluate all nodes in %INPUTS from left-to-right. Results are
 placed in corresponding positions of %RESULTS. Override this method
-when defining new xblocks if you don't want to evaluate all the inputs
+when defining new nodes if you don't want to evaluate all the inputs
 all the time."
   (with-fields (inputs results) self
     (let ((arity (length inputs)))
@@ -1031,8 +1026,8 @@ all the time."
   (mapcar #'recompile %inputs))
 
 (defun count-tree (tree)
-  "Return the number of xblocks enclosed in this xblock, including the
-current xblock. Used for taking a count of all the nodes in a tree."
+  "Return the number of nodes enclosed in this node, including the
+current node. Used for taking a count of all the nodes in a tree."
   (cond ((null tree) 0)
 	;; without inputs, just count the root
 	((null (field-value :inputs tree)) 1)
@@ -1041,7 +1036,7 @@ current xblock. Used for taking a count of all the nodes in a tree."
 		  (mapcar #'count-tree 
 			  (field-value :inputs tree))))))
 
-;;; Drawing xblocks with complete theme customization
+;;; Drawing nodes with complete theme customization
 
 ;; Very important for individuals with colorblindness.
 
@@ -1049,12 +1044,12 @@ current xblock. Used for taking a count of all the nodes in a tree."
   "The default background color of the XELF user interface.")
 
 (defparameter *socket-color* "gray80"
-  "The default background color of xblock sockets.")
+  "The default background color of node sockets.")
 
-(defparameter *xblock-font* "sans-11"
-  "Name of the font used in drawing xblock labels and input data.")
+(defparameter *node-font* "sans-11"
+  "Name of the font used in drawing node labels and input data.")
 
-(defparameter *xblock-bold* "sans-bold-11")
+(defparameter *node-bold* "sans-bold-11")
 
 (defmacro with-font (font &rest body)
   "Evaluate forms in BODY with FONT as the current font."
@@ -1085,7 +1080,7 @@ arguments. Uses `*dash*' which may be configured by `*style*'."
 This is used to override layout-determined baselines in cases where
 you want to align a group of text items across layouts.")
 
-(defparameter *xblock-colors*
+(defparameter *node-colors*
   '(:motion "cornflower blue"
     :system "gray40"
     :expression "gray60"
@@ -1107,9 +1102,9 @@ you want to align a group of text items across layouts.")
     :fields "MediumOrchid"
     :operators "OliveDrab3"
     :sensing "DeepSkyBlue3")
-  "X11 color names of the different xblock categories.")
+  "X11 color names of the different node categories.")
 
-(defparameter *xblock-highlight-colors*
+(defparameter *node-highlight-colors*
   '(:motion "sky blue"
     :system "gray60"
     :hover "dark orange"
@@ -1131,9 +1126,9 @@ you want to align a group of text items across layouts.")
     :variables "maroon2"
     :operators "OliveDrab1"
     :sensing "DeepSkyBlue2")
-  "X11 color names of highlights on the different xblock categories.")
+  "X11 color names of highlights on the different node categories.")
 
-(defparameter *xblock-shadow-colors*
+(defparameter *node-shadow-colors*
   '(:motion "royal blue"
     :system "gray42"
     :event "gray70"
@@ -1155,9 +1150,9 @@ you want to align a group of text items across layouts.")
     :variables "maroon4"
     :operators "OliveDrab4"
     :sensing "steel blue")
-  "X11 color names of shadows on the different xblock categories.")
+  "X11 color names of shadows on the different node categories.")
 
-(defparameter *xblock-foreground-colors*
+(defparameter *node-foreground-colors*
   '(:motion "white"
     :system "white"
     :button "yellow"
@@ -1179,18 +1174,18 @@ you want to align a group of text items across layouts.")
     :variables "white"
     :operators "white"
     :sensing "white")
-  "X11 color names of the text used for different xblock categories.")
+  "X11 color names of the text used for different node categories.")
 
 (define-method find-color nil (&optional (part :background))
-  "Return the X11 color name of this xblock's PART as a string.
+  "Return the X11 color name of this node's PART as a string.
 If PART is provided, return the color for the corresponding
 part (:BACKGROUND, :SHADOW, :FOREGROUND, or :HIGHLIGHT) of this
-category of xblock."
+category of node."
   (let* ((colors (ecase part
-		  (:background *xblock-colors*)
-		  (:highlight *xblock-highlight-colors*)
-		  (:shadow *xblock-shadow-colors*)
-		  (:foreground *xblock-foreground-colors*)))
+		  (:background *node-colors*)
+		  (:highlight *node-highlight-colors*)
+		  (:shadow *node-shadow-colors*)
+		  (:foreground *node-foreground-colors*)))
 	 (category (if (keywordp %category) %category :system))
 	 (result (getf colors category)))
       (prog1 result 
@@ -1202,7 +1197,7 @@ category of xblock."
 
 (defparameter *styles* '((:rounded :dash 3)
 			 (:flat :dash 1))
-  "Graphical style parameters for xblock drawing.")
+  "Graphical style parameters for node drawing.")
 
 (defvar *style* :flat "The default style setting; must be a keyword.")
 
@@ -1215,11 +1210,11 @@ category of xblock."
 		      *dash*)))
      ,@body)))
 
-(defmacro with-xblock-drawing (&body body)
+(defmacro with-node-drawing (&body body)
   "Run BODY forms with drawing primitives.
 The primitives are CIRCLE, DISC, LINE, BOX, and TEXT. These are used
 in subsequent functions as the basis of drawing nested diagrams of
-xblocks."
+nodes."
   `(let* ((foreground (find-color self :foreground))
 	  (background (find-color self :background))
 	  (highlight (find-color self :highlight))
@@ -1249,14 +1244,14 @@ xblocks."
 
 (define-method draw-rounded-patch nil (x0 y0 x1 y1
 				    &key depressed dark socket color)
-  "Draw a standard XELF xblock notation patch with rounded corners.
+  "Draw a standard XELF node notation patch with rounded corners.
 Places the top left corner at (X0 Y0), bottom right at (X1 Y1). If
 DEPRESSED is non-nil, draw an indentation; otherwise a raised area is
 drawn. If DARK is non-nil, paint a darker region. If SOCKET is
-non-nil, cut a hole in the xblock where the background shows
+non-nil, cut a hole in the node where the background shows
 through. If COLOR is non-nil, its value will override all other
 arguments."
-  (with-xblock-drawing 
+  (with-node-drawing 
     (let ((bevel (or color (if depressed shadow highlight)))
 	  (chisel (or color (if depressed highlight shadow)))
 	  (fill (or color (if socket
@@ -1316,7 +1311,7 @@ arguments."
 Places its top left corner at (X0 Y0), bottom right at (X1 Y1). If
 DEPRESSED is non-nil, draw an indentation; otherwise a raised area is
 drawn. If DARK is non-nil, paint a darker region."
-  (with-xblock-drawing 
+  (with-node-drawing 
     (let ((bevel (or color (if depressed shadow highlight)))
 	  (chisel (or color (if depressed highlight shadow)))
 	  (fill (or color (if socket
@@ -1376,7 +1371,7 @@ scale. See also "
     (when (> (- 0 *cursor-blink-time*) cursor-clock)
       (setf cursor-clock *cursor-blink-time*))))
 
-(define-method draw-cursor-glyph xblock
+(define-method draw-cursor-glyph node
     (&optional (x 0) (y 0) (width 2) (height (font-height *font*))
 	       &key color blink)
   "Draw a graphical cursor at point X, Y of dimensions WIDTH x HEIGHT."
@@ -1442,8 +1437,7 @@ See buffers.lisp for more on the implementation of drag-and-drop."
 	    (* (sdl:width image) x-factor)
 	    (* (sdl:height image) (or y-factor x-factor)))))
 
-(define-method change-image xblock 
-    ((image string :default nil))
+(define-method change-image node (image)
   "Change this sprite's currently displayed image to IMAGE, resizing
 the object if necessary."
   (when image
@@ -1451,8 +1445,8 @@ the object if necessary."
     (resize-to-image self)))
   
 (define-method draw nil ()
-  "Draw this xblock as a sprite. By default only %IMAGE is drawn.
-The following xblock fields will control sprite drawing:
+  "Draw this node as a sprite. By default only %IMAGE is drawn.
+The following node fields will control sprite drawing:
 
    %OPACITY  Number in the range 0.0-1.0 with 0.0 being fully transparent
              and 1.0 being fully opaque.
@@ -1516,11 +1510,11 @@ The following xblock fields will control sprite drawing:
   (if (or (null %label) (string= "" %label))
       0
       (+ (dash 2)
-	 (font-text-width %label *xblock-font*))))
+	 (font-text-width %label *node-font*))))
     
 (define-method draw-label-string nil (string &optional color)
-  (with-xblock-drawing 
-    (with-field-values (x y) self
+  (with-node-drawing 
+    (with-fields (x y) self
       (let* ((dash *dash*)
 	     (left (+ x (* 2 dash)))
 	     (y0 (+ y dash 1)))
@@ -1532,7 +1526,7 @@ The following xblock fields will control sprite drawing:
 ;;; Layout management
 
 (define-method center nil ()
-  "Automatically center the xblock on the screen."
+  "Automatically center the node on the screen."
   (with-fields (window-x window-y) *buffer*
     (with-fields (x y width height) self
       (let ((center-x (+ window-x (/ *gl-screen-width* 2)))
@@ -1545,15 +1539,15 @@ The following xblock fields will control sprite drawing:
   (align-to-pixels self))
 
 (define-method pin nil ()
-  "Prevent dragging and moving of this xblock."
+  "Prevent dragging and moving of this node."
   (setf %pinned t))
 
 (define-method unpin nil () 
-  "Allow dragging and moving of this xblock."
+  "Allow dragging and moving of this node."
   (setf %pinned nil))
 
 (define-method pinnedp nil ()
-  "When non-nil, dragging and moving are disallowed for this xblock."
+  "When non-nil, dragging and moving are disallowed for this node."
   %pinned)
 
 (define-method resize nil (width height)
@@ -1586,9 +1580,7 @@ The following xblock fields will control sprite drawing:
 
 ;;; Sound 
 
-(define-method play-sound xblock 
-    ((name string :default "chirp"))
-    "Play the sample named NAME."
+(define-method play-sound node (name)
   (when (or (null (cursor))
 	    (and (cursor) (%hearing-distance (cursor))))
     (when (<= (distance-to-cursor self)
@@ -1598,8 +1590,8 @@ The following xblock fields will control sprite drawing:
 ;;; Collision detection and UI hit testing
 
 (define-method hit nil (mouse-x mouse-y)
-  "Return this nil (or child input xblock) if the coordinates MOUSE-X
-and MOUSE-Y identify a point inside the nil (or input xblock.)"
+  "Return this nil (or child input node) if the coordinates MOUSE-X
+and MOUSE-Y identify a point inside the nil (or input node.)"
   (with-fields (x y width height inputs) self
     (when (and x y width height)
       (when (within-extents mouse-x mouse-y x y
@@ -1614,7 +1606,7 @@ and MOUSE-Y identify a point inside the nil (or input xblock.)"
 The order is (TOP LEFT RIGHT BOTTOM)."
   (when (null %height)
     (resize-to-image self))
-  (with-field-values (x y width height) self
+  (with-fields (x y width height) self
     (values 
      (cfloat y)
      (cfloat x)
@@ -1691,13 +1683,13 @@ The order is (TOP LEFT RIGHT BOTTOM)."
 
 (define-method colliding-with-rectangle-p nil (o-top o-left o-width o-height)
   ;; you must pass arguments in Y X order since this is TOP then LEFT
-  (with-field-values (x y width height) self
+  (with-fields (x y width height) self
     (point-in-rectangle-p (cfloat x) (cfloat y) (cfloat width) (cfloat height) 
 			  (cfloat o-top) (cfloat o-left) (cfloat o-width) (cfloat o-height))))
 
 (defun colliding-with-bounding-box-p (self top left right bottom)
   ;; you must pass arguments in Y X order since this is TOP then LEFT
-  (with-field-values (x y width height) self
+  (with-fields (x y width height) self
     (when (and width height)
       (point-in-rectangle-p (cfloat x) (cfloat y) (cfloat width) (cfloat height)
 			    top left (- right left) (- bottom top)))))
@@ -1705,8 +1697,8 @@ The order is (TOP LEFT RIGHT BOTTOM)."
 ;; (define-method contained-in-bounding-box nil (bounding-box)
 ;;   (bounding-box-contains bounding-box (multiple-value-list (bounding-box self))))
 
-(defmethod colliding-with ((self xblock) (thing xblock))
-  "Return non-nil if this xblock collides with THING."
+(defmethod colliding-with ((self node) (thing node))
+  "Return non-nil if this node collides with THING."
   (multiple-value-bind (top left right bottom) 
       (bounding-box thing)
     (colliding-with-bounding-box self top left right bottom)))
@@ -1731,7 +1723,7 @@ The order is (TOP LEFT RIGHT BOTTOM)."
       (find-heading x y x0 y0))))
 
 (define-method heading-to-cursor nil ()
-  "The heading (in radians) to the cursor from this xblock."
+  "The heading (in radians) to the cursor from this node."
   (heading-to-thing self (get-cursor (current-buffer))))
 
 (define-method aim-at-thing nil (thing)
@@ -1749,87 +1741,6 @@ Note that the center-points of the objects are used for comparison."
   (multiple-value-bind (x0 y0) (center-point self)
     (multiple-value-bind (x y) (center-point (find-object thing))
       (distance x0 y0 x y))))
-
-(define-method distance-to-cursor nil ()
-  "Return the straight-line distance to the cursor."
-  (distance-between self (get-cursor (find-object *buffer*))))
-
-(define-method queue-layout nil ()
-  (setf %needs-layout t))
-
-(define-method invalidate-layout nil ()
-  (let ((buffer (current-buffer)))
-    (when (and buffer (has-method :queue-layout buffer))
-      (queue-layout buffer))))
-
-;; (define-method bring-to-front nil (xblock)
-;;   (with-fields (inputs) self
-;;     (assert (contains self xblock))
-;;     (delete-input self xblock)
-;;     (append-input self xblock)))
-
-;; (define-method update nil ()
-;;   (with-buffer self 
-;;     (dolist (each %inputs)
-;;       (update each))
-;;     (update-layout self)))
-
-(define-method update-layout nil (&optional force)
-  (with-fields (inputs needs-layout) self
-    (when (or force needs-layout)
-      (dolist (each inputs)
-	(layout each))
-      (setf needs-layout nil))))
-
-(define-method append-input nil (xblock)
-  (assert (xelfp xblock))
-  (with-fields (inputs) self
-    (assert (not (contains self xblock)))
-    (set-parent xblock self)
-    (setf inputs (nconc inputs (list xblock)))))
-
-(define-method prepend-input nil (xblock)
-  (assert (xelfp xblock))
-  (with-fields (inputs) self
-    (assert (not (contains self xblock)))
-    (set-parent xblock self)
-    (push xblock inputs)))
-
-(define-method add-xblock nil (xblock &optional x y prepend)
-  (assert (xelfp xblock))
-  ;(assert (not (contains self xblock)))
-  (if prepend 
-      (prepend-input self xblock)
-      (append-input self xblock))
-  (when (and (integerp x)
-	     (integerp y))
-    (move-to xblock x y))
-  (save-location xblock)
-  (invalidate-layout self))
-
-(define-method delete-xblock nil (xblock)
-  (assert (xelfp xblock))
-  (assert (contains self xblock))
-  (delete-input self xblock))
-
-;;; Buttons for next/previous
-
-(defvar *next-tab* nil)
-
-(define-method tab nil (&optional backward)
-  (if *next-tab*
-      (focus-on (current-buffer) *next-tab*)
-      (let ((index (position-within-parent self)))
-	(when (numberp index)
-	  (focus-on (current-buffer)
-		    (with-fields (inputs) %parent
-		      (nth (mod (+ index
-				   (if backward -1 1))
-				(length inputs))
-			   inputs)))))))
-
-(define-method backtab nil ()
-  (tab self :backward))
 
 ;;; Simple scheduling mechanisms
 
@@ -1890,7 +1801,7 @@ Note that the center-points of the objects are used for comparison."
       (t (error "Invalid task.")))))
 
 (defun seconds->frames (seconds)
-  (truncate (* seconds (/ 1000 *dt*))))
+  (truncate (* seconds *frame-rate*)))
 
 (defun time-until (updates)
   (assert (>= updates *updates*))

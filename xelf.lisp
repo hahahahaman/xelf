@@ -396,5 +396,9 @@ xelf
 xelf-object
 xelf-object-p
 xelfp
+duplicate
+new
+node
+xnode
 ))
 
