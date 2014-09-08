@@ -62,8 +62,7 @@ Examples:
   (bind-event self '(:q :control) 'quit)
   (bind-event self '(:escape :shift) 'menu)
 
-See also `keys.lisp' for the full table of key and modifier symbols.
-  (:documentation "))
+See also `keys.lisp' for the full table of key and modifier symbols."))
 
 (defgeneric bounding-box
   (NODE)

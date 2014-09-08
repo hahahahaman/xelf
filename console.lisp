@@ -2727,7 +2727,9 @@ The BODY should include a call to START-SESSION."
       (at-next-update 
        (start-alone (find-buffer name))))))
 
-(defun current-buffer () (find-object *buffer*))
+(defun current-buffer () 
+  "Return the currently active buffer."
+  (find-object *buffer*))
 
 (defun switch-to-buffer (buffer)
   "Switch to the buffer BUFFER."

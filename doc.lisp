@@ -116,6 +116,10 @@
 
 ;; (document-function 'align-to-pixels t)
 ;; (documentation 'align-to-pixels 'function)
-;; (document-package-to-file :xelf #P"/home/dto/ioweb/reference.org" :title "Xelf documentation reference")
+(document-package-to-file 
+ :xelf
+ #P"/home/dto/ioweb/reference.org"
+ :title "Xelf documentation reference"
+ :preamble-file #P"/home/dto/ioweb/preamble.org")
 
 ;;; doc.lisp ends here
