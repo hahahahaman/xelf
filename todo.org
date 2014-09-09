@@ -1,13 +1,5 @@
-* TODO DEFPROJECT 
+* TODO document node and buffer fields with prose sections
 
-
-
-
-* DONE normalize all names to -p predicates, add-object not drop-object
-  CLOSED: [2014-09-08 Mon 04:15]
-* DONE replace WITH-FIELDS
-  CLOSED: [2014-09-08 Mon 04:15]
-* DONE start fresh and export only needed symbols
   CLOSED: [2014-09-08 Mon 04:15]
 
 * TODO fix coroutine LATER

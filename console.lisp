@@ -1419,7 +1419,7 @@ property list with the following elements:
 (defun open-project (&optional (project *project*) parameters)
   "Set the current project to PROJECT."
   (destructuring-bind (&key (without-database t) with-database) parameters
-    (load-project-image project 
+    (load-project-image (if (stringp project) project (string-downcase (symbol-name project)))
 			:without-database without-database
 			:with-database with-database)))
 

@@ -535,7 +535,7 @@ slowdown. See also quadtree.lisp")
 	    (remove-thing-maybe self object))
 	  (add-node *clipboard* object))))))
 
-(defun paste-from (destination source &optional (dx 0) (dy 0))
+(defun paste (destination source &optional (dx 0) (dy 0))
   "Copy the objects in SOURCE into DESTINATION with offset DX,DY."
   (dolist (object (mapcar #'duplicate-safely (get-nodes (find-object source))))
     (with-fields (x y) object
@@ -546,31 +546,31 @@ slowdown. See also quadtree.lisp")
 	  (move-to object (+ x dx) (+ y dy)))))))
   
 (defun paste-into (self source &optional (dx 0) (dy 0))
-  (paste-from self source dx dy)
+  (paste self source dx dy)
   (destroy (find-object source)))
 
-(defun paste (&optional (self (current-buffer)) (dx 0) (dy 0))
-  (paste-from self *clipboard* dx dy))
+;; (defun paste (&optional (self (current-buffer)) (dx 0) (dy 0))
+;;   (paste-from self *clipboard* dx dy))
   
 (defun paste-at-pointer (&optional (self (current-buffer)))
   (let ((temp (new 'buffer)))
-    (paste-from temp *clipboard*)
+    (paste temp *clipboard*)
     (send :trim temp)
-    (paste-from self temp
+    (paste self temp
 		(window-pointer-x)
 		(window-pointer-y))))
 
-(define-method paste-here buffer ()
-  (paste-at-pointer self))
+;; (define-method paste-here buffer ()
+;;   (paste-at-pointer self))
 
-(define-method edit-cut buffer ()
-  (cut))
+;; (define-method edit-cut buffer ()
+;;   (cut))
 
-(define-method edit-paste buffer ()
-  (paste))
+;; (define-method edit-paste buffer ()
+;;   (paste))
 
-(define-method edit-copy buffer ()
-  (copy))
+;; (define-method edit-copy buffer ()
+;;   (copy))
 
 ;; (defun paste-as-new-buffer ()
 ;;   (let ((temp (new 'buffer "*new-buffer*")))
@@ -628,7 +628,7 @@ slowdown. See also quadtree.lisp")
   (when buffer
     (assert (and (numberp dx) (numberp dy)))
     (with-new-buffer 
-      (paste-from (current-buffer) buffer dx dy)
+      (paste (current-buffer) buffer dx dy)
       (destroy buffer))))
 
 (define-method destroy buffer ()
@@ -738,7 +738,7 @@ original buffers are destroyed."
 surrounded by a border of thickness BORDER units."
   (with-fields (height width) buffer
     (with-new-buffer 
-      (paste-from (current-buffer) (find-object buffer) border border)
+      (paste (current-buffer) (find-object buffer) border border)
       (destroy (find-object buffer))
       (resize (current-buffer)
 	      (+ width (* border 2))
@@ -983,30 +983,30 @@ block found, or nil if none is found."
   ;;   (when *shell*
   ;;     (with-buffer self (close-menus *shell*))))))))
 
-(define-method press buffer (x y &optional button)
-  (with-buffer self
-    (with-fields (click-start drag-button click-start-block
-			      region-start region focused-block) self
-      ;; region select
-      (if (holding-shift)
-	  (begin-region self)
-	  ;; or, regular select.
-	  ;; now find what we're touching
-	  (progn
-	    (multiple-value-bind (block object-p)
-		(hit-inputs self x y)
-	      (setf %object-p object-p)
-	      (if (null block)
-		  (focus-on self nil)
-		  ;; (when *shell-open-p*
-		  ;; 	(exit-shell self)))
-		  (progn 
-		    (setf click-start (cons x y))
-		    (setf click-start-block (find-uuid block))
-		    (setf drag-button button)
-		    ;; now focus; this might cause another block to be
-		    ;; focused, as in the case of the Shell
-		    (focus-on self block)))))))))
+(define-method press buffer (x y &optional button))
+  ;; (with-buffer self
+  ;;   (with-fields (click-start drag-button click-start-block
+  ;; 			      region-start region focused-block) self
+  ;;     ;; region select
+  ;;     (if (holding-shift)
+  ;; 	  (begin-region self)
+  ;; 	  ;; or, regular select.
+  ;; 	  ;; now find what we're touching
+  ;; 	  (progn
+  ;; 	    (multiple-value-bind (block object-p)
+  ;; 		(hit-inputs self x y)
+  ;; 	      (setf %object-p object-p)
+  ;; 	      (if (null block)
+  ;; 		  (focus-on self nil)
+  ;; 		  ;; (when *shell-open-p*
+  ;; 		  ;; 	(exit-shell self)))
+  ;; 		  (progn 
+  ;; 		    (setf click-start (cons x y))
+  ;; 		    (setf click-start-block (find-uuid block))
+  ;; 		    (setf drag-button button)
+  ;; 		    ;; now focus; this might cause another block to be
+  ;; 		    ;; focused, as in the case of the Shell
+  ;; 		    (focus-on self block)))))))))
   
   (define-method clear-drag-data buffer ()
     (setf %drag-start nil
@@ -1021,73 +1021,73 @@ block found, or nil if none is found."
 	%click-start-block nil
 	%click-start nil))
   
-(define-method release buffer (x y &optional button)
-  (with-buffer self
-    (with-fields 
-	(drag-offset drag-start hover drag quadtree click-start drag-button
-		     region-start region click-start-block drag-origin already-failed
-		     focused-block) self
-      (setf already-failed nil)
-      (end-region self)
-      (select-region self)
-      (if drag
-	  ;; we're dragging
-	  (destructuring-bind (x0 . y0) drag-offset
-	    (setf drag-button nil)
-	    (let ((drag-parent (get-parent drag))
-		  (drop-x (- x x0))
-		  (drop-y (- y y0)))
-	      (if (not (can-escape drag))
-		  ;; put back in halo or wherever
-		  (when drag-origin 
-		    (add-block drag-origin drag drop-x drop-y))
-		  ;; ok, drop. where are we dropping?
-		  (progn 
-		    (if (and hover (will-accept (find-object hover) 
-						(find-object drag)))
-			;; drop into container
-			(accept (find-object hover) (find-object drag))
-			;; drop onto map
-			(with-quadtree quadtree
-			  (add-node self drag drop-x drop-y)))
-		    (finish-drag drag)))))
-	  ;;
-	  ;; we were clicking instead of dragging
-	  (progn
-	    ;; clicks that don't hit an object are sent to self
-	    ;; (if you hold shift, they are ALWAYS sent to buffer)
-	    (let ((it (if (holding-shift) self
-			  (find-object (or focused-block self) :noerror))))
-	      (when (xelfp it)
-		(with-buffer self 
-		  (cond
-		    ;; right click and control click are equivalent
-		    ((or (= button 3)
-			 (and (holding-control) (= button 1)))
-		     (alternate-tap it x y))
-		    ;; scroll wheel (middle) click and shift click are equivalent
-		    ((or (= button 2)
-			 (and (holding-shift) (= button 1)))
-		     (scroll-tap it x y))
-		    ;; vertical scrolling with mousewheel
-		    ((= button 4)
-		     (scroll-up it))
-		    ((= button 5)
-		     (scroll-down it))
-		    ;; horizontal scrolling with shift-mousewheel
-		    ((and (= button 4)
-			  (holding-shift))
-		     (scroll-left it))
-		    ((and (= button 5)
-			  (holding-shift))
-		     (scroll-right it))
-		    ;; plain old click
-		    (t 
-		     (tap it x y)))))
-	      ;;(select self focused-block))
-	      (setf click-start nil))))
-      ;; clean up bookeeping
-      (clear-drag-data self))))
+(define-method release buffer (x y &optional button))
+  ;; (with-buffer self
+  ;;   (with-fields 
+  ;; 	(drag-offset drag-start hover drag quadtree click-start drag-button
+  ;; 		     region-start region click-start-block drag-origin already-failed
+  ;; 		     focused-block) self
+  ;;     (setf already-failed nil)
+  ;;     (end-region self)
+  ;;     (select-region self)
+  ;;     (if drag
+  ;; 	  ;; we're dragging
+  ;; 	  (destructuring-bind (x0 . y0) drag-offset
+  ;; 	    (setf drag-button nil)
+  ;; 	    (let ((drag-parent (get-parent drag))
+  ;; 		  (drop-x (- x x0))
+  ;; 		  (drop-y (- y y0)))
+  ;; 	      (if (not (can-escape drag))
+  ;; 		  ;; put back in halo or wherever
+  ;; 		  (when drag-origin 
+  ;; 		    (add-block drag-origin drag drop-x drop-y))
+  ;; 		  ;; ok, drop. where are we dropping?
+  ;; 		  (progn 
+  ;; 		    (if (and hover (will-accept (find-object hover) 
+  ;; 						(find-object drag)))
+  ;; 			;; drop into container
+  ;; 			(accept (find-object hover) (find-object drag))
+  ;; 			;; drop onto map
+  ;; 			(with-quadtree quadtree
+  ;; 			  (add-node self drag drop-x drop-y)))
+  ;; 		    (finish-drag drag)))))
+  ;; 	  ;;
+  ;; 	  ;; we were clicking instead of dragging
+  ;; 	  (progn
+  ;; 	    ;; clicks that don't hit an object are sent to self
+  ;; 	    ;; (if you hold shift, they are ALWAYS sent to buffer)
+  ;; 	    (let ((it (if (holding-shift) self
+  ;; 			  (find-object (or focused-block self) :noerror))))
+  ;; 	      (when (xelfp it)
+  ;; 		(with-buffer self 
+  ;; 		  (cond
+  ;; 		    ;; right click and control click are equivalent
+  ;; 		    ((or (= button 3)
+  ;; 			 (and (holding-control) (= button 1)))
+  ;; 		     (alternate-tap it x y))
+  ;; 		    ;; scroll wheel (middle) click and shift click are equivalent
+  ;; 		    ((or (= button 2)
+  ;; 			 (and (holding-shift) (= button 1)))
+  ;; 		     (scroll-tap it x y))
+  ;; 		    ;; vertical scrolling with mousewheel
+  ;; 		    ((= button 4)
+  ;; 		     (scroll-up it))
+  ;; 		    ((= button 5)
+  ;; 		     (scroll-down it))
+  ;; 		    ;; horizontal scrolling with shift-mousewheel
+  ;; 		    ((and (= button 4)
+  ;; 			  (holding-shift))
+  ;; 		     (scroll-left it))
+  ;; 		    ((and (= button 5)
+  ;; 			  (holding-shift))
+  ;; 		     (scroll-right it))
+  ;; 		    ;; plain old click
+  ;; 		    (t 
+  ;; 		     (tap it x y)))))
+  ;; 	      ;;(select self focused-block))
+  ;; 	      (setf click-start nil))))
+  ;;     ;; clean up bookeeping
+  ;;     (clear-drag-data self))))
 
 (define-method tap buffer (x y) ())
 (define-method alternate-tap buffer (x y))

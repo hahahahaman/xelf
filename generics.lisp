@@ -155,6 +155,10 @@ found."))
   (NODE OTHER-NODE)
   (:documentation "Return the angle (in radians) of the ray from NODE to OTHER-NODE."))
 
+(defgeneric insert 
+    (NODE &OPTIONAL X Y Z)
+  (:documentation "Add the NODE to the current buffer, optionally at X,Y,Z."))
+
 (defgeneric install-quadtree
   (SELF))
 
@@ -524,7 +528,7 @@ bounding box of the buffer's viewing window."))
 (INDEX-PENDING-RESOURCES resources)
 (INDEX-RESOURCE resources)
 (INITIALIZE :disabled)
-(INSERT :disabled)
+(INSERT buffers)
 (INSTALL-QUADTREE collision-detection)
 (IS-JOYSTICK-EVENT joystick)
 (IS-RAW-JOYSTICK-EVENT joystick)
@@ -652,6 +656,7 @@ bounding box of the buffer's viewing window."))
 (START-UP :disabled)
 (STEP-COORDINATES :disabled)
 (STEP-IN-DIRECTION movement)
+(DIRECTION-TO movement)
 (STEP-TOWARD-HEADING movement)
 (STOP :disabled)
 (STOP-FOLLOWING buffers)
