@@ -1599,35 +1599,22 @@ The order is (TOP LEFT RIGHT BOTTOM)."
       (bounding-box thing)
     (colliding-with-bounding-box-p self top left right bottom)))
 
-(define-method direction-to-thing nil (thing)
+(define-method direction-to nil (thing)
   "Return a direction keyword approximating the direction to THING."
   (with-fields (x y) thing
-    (direction-to %x %y x y)))
-
-(define-method direction-to-cursor nil ()
-  "Return the directional keyword naming the general direction to the cursor."
-  (direction-to-thing self (get-cursor (current-buffer))))
-
-(define-method heading-to-thing nil (thing)
-  "Return a heading (in radians) to THING."
-  (with-fields (x y) thing
-    (find-heading %x %y x y)))
+    (find-direction %x %y x y)))
 
 (define-method heading-between nil (thing)
   (multiple-value-bind (x y) (center-point self)
     (multiple-value-bind (x0 y0) (center-point thing)
       (find-heading x y x0 y0))))
 
-(define-method heading-to-cursor nil ()
-  "The heading (in radians) to the cursor from this node."
-  (heading-to-thing self (get-cursor (current-buffer))))
-
-(define-method aim-at-thing nil (thing)
-  "Aim the current heading at the object THING."
-  (setf %heading (heading-to-thing self thing)))
+(define-method aim-at nil (node)
+  "Aim the current heading at the other NODE."
+  (setf %heading (heading-between self node)))
 
 (define-method aim nil (heading)
-  "Aim this object toward the angle HEADING."
+  "Aim this NODE toward the angle HEADING."
   (assert (numberp heading))
   (setf %heading heading))
 
@@ -1696,6 +1683,8 @@ Note that the center-points of the objects are used for comparison."
       (t (error "Invalid task.")))))
 
 (defun seconds->frames (seconds)
+  "Return the time in SECONDS as an integer number of frames.
+Based on the current *FRAME-RATE*."
   (truncate (* seconds *frame-rate*)))
 
 (defun time-until (updates)

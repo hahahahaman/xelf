@@ -700,7 +700,7 @@ the BUTTON. STATE should be either 1 (on) or 0 (off)."
     (floating-point-inexact (fpe)
       (error fpe))))
 
-(defparameter *updates* 0)
+(defparameter *updates* 0 "The number of game loop updates since startup.")
 
 ;;; Screen dimensions
 
@@ -1092,7 +1092,9 @@ A lookup failure results in an error. See `find-resource'.")
 
 (defparameter *untitled* "XELF")
 
-(defvar *project* *untitled* "The name of the current project.")
+(defvar *project* *untitled* 
+  "The name of the current project.
+This is set by OPEN-PROJECT; use that instead.")
 
 (defvar *recent-projects* nil)
 
@@ -1115,7 +1117,9 @@ A lookup failure results in an error. See `find-resource'.")
 	 
 	 ;; (pathname-directory *load-truename*))))
 
-(defun current-directory () *current-directory*)
+(defun current-directory () 
+  "Returns the pathname of the current directory."
+  *current-directory*)
 
 (defun xelf-directory ()
   (make-pathname :directory 
@@ -1413,7 +1417,7 @@ property list with the following elements:
       `(defblock ,name ,@body)))
 
 (defun open-project (&optional (project *project*) parameters)
-  "Set the current project name to PROJECT."
+  "Set the current project to PROJECT."
   (destructuring-bind (&key (without-database t) with-database) parameters
     (load-project-image project 
 			:without-database without-database
@@ -1499,7 +1503,16 @@ table."
 
 ;;; Standard resource names
 
-(defparameter *font* "sans-bold-11")
+(defparameter *font* "sans-11" 
+"The current font resource name. See also WITH-FONT.
+See also the file 'xelf/standard/index.xelf' for examples of font
+resource declarations.")
+
+(defparameter *bold* "sans-bold-11"
+"Resource name of default boldface font.")
+
+(defparameter *italic* "sans-italic-11"
+"Resource name of default italic font.")
 
 (defvar *color* "black")
 
@@ -1602,8 +1615,13 @@ also the documentation for DESERIALIZE."
     (:additive2 (gl:blend-func :one :one))
     (:alpha (gl:blend-func :src-alpha :one-minus-src-alpha))))
 
-(defvar *default-texture-filter* :mipmap)
-(defvar *font-texture-filter* :linear)
+(defvar *default-texture-filter* :mipmap
+"Filter used for drawing rendered outline fonts.
+Valid values are :mipmap (the default), :linear, and :nearest.")
+
+(defvar *font-texture-filter* :linear
+"Filter used for drawing rendered outline fonts.
+Valid values are :linear (the default), :mipmap, and :nearest.")
 
 (defun use-filter (filter)
   ;; set filtering parameters
@@ -2376,7 +2394,10 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
 ;; points in the font size, for example :size 12 would be a 12-point
 ;; version of the font.
 
-(defparameter *font-texture-scale* 1)
+(defparameter *font-texture-scale* 1
+"Scaling factor for rendering of outline fonts.
+Use this when your game window might be enlarged to the point of
+blurring font textures that are too small.")
 
 (defun-memo font-height-* (font)
     ;; don't cache null results, because these can happen if
@@ -2388,10 +2409,13 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
       (:ttf (sdl:get-font-height :font (resource-object resource))))))
 
 (defun font-height (font)
+  "Height of a line of text in font FONT."
   (* (/ 1 *font-texture-scale*)
      (font-height-* font)))
   
 (defun font-width (font)
+  "Character with of a bitmap font FONT.
+Signals an error when called on an outline font."
   (* (/ 1 *font-texture-scale*)
      (let ((resource (find-resource font)))
        (ecase (resource-type resource)
@@ -2403,6 +2427,7 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
   (sdl:get-font-size string :size :w :font (find-resource-object font)))
 
 (defun font-text-width (string &optional (font *font*))
+  "Width of STRING when rendered in FONT."
   (* (/ 1 *font-texture-scale*)
      (font-text-width-* string font)))
 
@@ -2421,7 +2446,9 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
     (values (* width (/ 1 *font-texture-scale*))
 	    (* height (/ 1 *font-texture-scale*)))))
 
-(defparameter *use-antialiased-text* t)
+(defparameter *use-antialiased-text* t 
+"When non-nil, render outline fonts with antialiasing.
+See also *FONT-TEXTURE-SCALE* and *FONT-TEXTURE-FILTER*.")
 
 (defun clear-cached-font-metrics ()
   (clear-memoize 'font-height-*)
@@ -2484,6 +2511,7 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
       (draw-textured-rectangle x y z width height texture :vertex-color color))))
   
 (defun clear-text-image-cache (&key (delete-textures t))
+  "Free up texture memory used by rendered outline fonts."
   (let ((table (get-memo-table 'find-text-image)))
     (when table
       (when delete-textures 
@@ -2690,9 +2718,9 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
   (sdl:quit-sdl))
   
 (defmacro with-session (&body body)
-  "Run the BODY forms with an active engine.
-The BODY should include a call to START-SESSION."
-  `(progn 
+  "Starts up Xelf, runs the BODY forms, and starts the main game loop.
+Xelf will exit after the game loop terminates."
+  `(progn
      (start-up)
      ,@body
      (start-session)

@@ -126,7 +126,7 @@ add-resources
 add-tag
 add-to-list
 aim
-aim-at-thing
+aim-at
 align-to-pixels
 alternate-tap
 analog-stick-heading
@@ -184,7 +184,7 @@ direction-degrees
 direction-heading
 direction-heading
 direction-to
-direction-to-thing
+direction-to
 disable-key-repeat
 distance
 distance-between
@@ -240,8 +240,6 @@ heading-between
 heading-degrees
 heading-direction
 heading-to-cursor
-heading-to-thing
-heading-to-thing
 height
 holding-control
 holding-shift

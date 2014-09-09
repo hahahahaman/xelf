@@ -138,7 +138,7 @@ DIRECTION."
     (:downright (values (+ x n) (+ y n)))
     (:downleft (values (- x n) (+ y n)))))
 
-(defun direction-to (x1 y1 x2 y2)
+(defun find-direction (x1 y1 x2 y2)
   "Return the heading (in radians) of the ray from Y1,X1 to Y2,X2."
   (if (or (some #'null (list y1 x1 y2 x2))
 	  (and (= y1 y2) (= x1 x2)))

@@ -107,7 +107,9 @@ more information.
 ")
 
 (defvar *copyright-notice*
-  (concatenate 'string *compiler-copyright-notice* *xelf-copyright-notice*))
+  (concatenate 'string *compiler-copyright-notice* *xelf-copyright-notice*)
+  "Copyright notices for Xelf, its dependencies, and the current Lisp
+implementation.")
 
 ;;; Fundamental class
 
