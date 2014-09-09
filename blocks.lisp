@@ -1318,8 +1318,7 @@ See buffers.lisp for more on the implementation of drag-and-drop."
     (dolist (input inputs)
       (draw input))))
 
-(define-method will-obstruct-p nil (path-finder)
-  (has-tag self :solid))
+(define-method will-obstruct-p nil (path-finder) nil)
 
 (define-method resize-to-image nil ()
   (when *resources*

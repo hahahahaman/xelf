@@ -372,12 +372,18 @@ See also `define-prototype'.
   
 (defmethod duplicate ((xnode xnode) &rest initargs &key &allow-other-keys)
   (let* ((class (class-of xnode))
-	 (new-xnode (allocate-instance class))
-	 (slots (mapcar #'sb-mop:slot-definition-name (sb-mop:class-slots class))))
-    (dolist (slot-name slots) 
-      (when (slot-boundp xnode slot-name)
-	(setf (slot-value new-xnode slot-name) (slot-value xnode slot-name))))
-    (apply #'reinitialize-instance new-xnode initargs)))
+	 (new-xnode (allocate-instance class)))
+    (flet ((slot-definition-name (slot)
+	     #+ccl (ccl:slot-definition-name slot)
+	     #+sbcl (sb-mop:slot-definition-name slot))
+	   (class-slots (class)
+	     #+ccl (ccl:class-slots class)
+	     #+sbcl (sb-mop:class-slots class)))
+      (let ((slots (mapcar #'slot-definition-name (class-slots class))))
+	(dolist (slot-name slots) 
+	  (when (slot-boundp xnode slot-name)
+	    (setf (slot-value new-xnode slot-name) (slot-value xnode slot-name))))
+	(apply #'reinitialize-instance new-xnode initargs)))))
 
 ;;; Clipboard
 

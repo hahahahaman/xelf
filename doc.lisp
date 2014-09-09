@@ -20,15 +20,16 @@
 
 (in-package :xelf)
 
-(defun get-symbols ()
-  (let (symbols)
-    (do-external-symbols (symbol (find-package :xelf))
-      (push symbol symbols))
-    symbols))
-
 (defun symbol-category (symbol)
   (let ((entry (find symbol *symbol-categories* :key #'first)))
     (when entry (second entry))))
+
+(defun get-symbols ()
+  (let (symbols)
+    (do-external-symbols (symbol (find-package :xelf))
+      (when (not (eq :disabled (symbol-category symbol)))
+	(push symbol symbols)))
+    symbols))
 
 (defun all-categories ()
   (let (categories)
@@ -39,7 +40,8 @@
 
 (defun find-symbols-in-category (category)
   (labels ((p (sym)
-	     (eq category (second (find sym *symbol-categories* :key #'first)))))
+	     (let ((cat (second (find sym *symbol-categories* :key #'first))))
+	       (eq category cat))))
     (sort (remove-if-not #'p (get-symbols))
 	  #'string<)))
 
@@ -72,7 +74,9 @@
   (format stream " "))
 
 (defun document-function (symbol stream)
-  (let ((doc (documentation symbol 'function)))
+  (let ((doc (documentation symbol 'function))
+	(args (sb-introspect:function-lambda-list (or (macro-function symbol)
+						      (fdefinition symbol)))))
     (heading 2 (format nil "~A (~A)" symbol (if (macro-function symbol) "macro"
 						(if (find-class symbol nil)
 						    "class"
@@ -80,10 +84,11 @@
 							"generic function"
 							"function"))))
 	     stream)
-    (arguments-prefix stream)
-    (fresh-line stream)
-    (fresh-line stream)
-    (format stream ": ~S" (sb-introspect:function-lambda-list (fdefinition symbol)))
+    (when (not (null (first args)))
+      (arguments-prefix stream)
+      (fresh-line stream)
+      (fresh-line stream)
+      (format stream ": ~S" args))
     (when doc
       (incf *symbol-count*)
       (fresh-line stream)
@@ -95,7 +100,6 @@
 	   stream)
   (when (documentation symbol 'variable)
     (incf *symbol-count*)
-    (heading 3 "Documentation" stream)
     (format stream "~A" (documentation symbol 'variable)))
   (fresh-line stream))
 

@@ -190,8 +190,10 @@ NODE, if any."
 	     (handle-collision object thing))))
      tree)))
 
-(defun find-bounding-box (objects)
-  ;; calculate the bounding box of a list of objects
+(defun find-bounding-box (nodes)
+  "Return as multiple values the minimal bounding box 
+containing the NODES."
+  ;; calculate the bounding box of a list of nodes
   (labels ((left (thing) (field-value 'x thing))
 	   (right (thing) (+ (field-value 'x thing)
 			     (field-value 'width thing)))
@@ -199,10 +201,10 @@ NODE, if any."
 	   (bottom (thing) (+ (field-value 'y thing)
 			      (field-value 'height thing))))
     ;; let's find the bounding box.
-    (values (reduce #'min (mapcar #'top objects))
-	    (reduce #'min (mapcar #'left objects))
-	    (reduce #'max (mapcar #'right objects))
-	    (reduce #'max (mapcar #'bottom objects)))))
+    (values (reduce #'min (mapcar #'top nodes))
+	    (reduce #'min (mapcar #'left nodes))
+	    (reduce #'max (mapcar #'right nodes))
+	    (reduce #'max (mapcar #'bottom nodes)))))
 
 (defun quadtree-fill (set &optional (quadtree *quadtree*))
   (let ((objects (etypecase set

@@ -127,6 +127,7 @@
      ,@body))
 
 (defmacro with-buffer (buffer &rest body)
+  "Evaluate the BODY forms in the BUFFER."
   `(let* ((*buffer* (find-uuid ,buffer)))
      ,@body))
 
@@ -161,13 +162,15 @@
   (loop for object being the hash-values in (field-value 'objects self)
 	when (xelfp object) collect (find-object object)))
 
-(defmacro do-nodes (var buffer &body body)
+(defmacro do-nodes (spec &body body)
   "Iterate over the nodes in BUFFER, binding VAR to each node and
-evaluating the forms in BODY for each."
+evaluating the forms in BODY for each. SPEC is of the form (VAR
+BUFFER)."
   (let ((node (gensym)))
-  `(loop for ,node being the hash-values in (field-value 'objects ,buffer)
-	 do (let ((,var (find-node ,node)))
-	      ,@body))))
+    (destructuring-bind (var buffer) spec 
+      `(loop for ,node being the hash-values in (field-value 'objects ,buffer)
+	     do (let ((,var (find-object ,node)))
+		  ,@body)))))
 
 (defun z-sort (objects)
   (sort objects #'< :key #'%z))
@@ -532,13 +535,14 @@ slowdown. See also quadtree.lisp")
 	    (remove-thing-maybe self object))
 	  (add-node *clipboard* object))))))
 
-(defun paste-from (self source &optional (dx 0) (dy 0))
+(defun paste-from (destination source &optional (dx 0) (dy 0))
+  "Copy the objects in SOURCE into DESTINATION with offset DX,DY."
   (dolist (object (mapcar #'duplicate-safely (get-nodes (find-object source))))
     (with-fields (x y) object
       (clear-buffer-data object)
-      (with-buffer self
-	(with-quadtree (field-value 'quadtree self)
-	  (add-node self object)
+      (with-buffer destination
+	(with-quadtree (field-value 'quadtree destination)
+	  (add-node destination object)
 	  (move-to object (+ x dx) (+ y dy)))))))
   
 (defun paste-into (self source &optional (dx 0) (dy 0))
@@ -615,6 +619,7 @@ slowdown. See also quadtree.lisp")
       ;; 		  (resize self right bottom)))))))))
 
 (defmacro with-new-buffer (&body body)
+  "Evaluate the BODY forms in a new buffer."
   `(with-buffer (make-instance 'buffer)
      ,@body
      (adjust-bounding-box-maybe (current-buffer))))
@@ -636,6 +641,8 @@ slowdown. See also quadtree.lisp")
     (call-next-method self)))
 
 (defun compose (buffer1 buffer2)
+  "Return a new buffer containing all the objects from both BUFFER1
+and BUFFER2. The original buffers are destroyed."
   (with-new-buffer 
     (when (and buffer1 buffer2)
       (let ((all-objects (nconc (get-nodes buffer1)
@@ -674,6 +681,9 @@ slowdown. See also quadtree.lisp")
 	(- right left))))
   
 (defun compose-below (&optional buffer1 buffer2)
+  "Return a new buffer containing all the objects from BUFFER1 and
+BUFFER2, with BUFFER2's objects pasted below those of BUFFER1. The
+original buffers are destroyed."
   (when (and buffer1 buffer2)
     (compose buffer1
 	     (translate buffer2
@@ -681,6 +691,9 @@ slowdown. See also quadtree.lisp")
 			(field-value 'height buffer1)))))
 
 (defun compose-beside (&optional buffer1 buffer2)
+  "Return a new buffer containing all the objects from BUFFER1 and
+BUFFER2, with BUFFER2's objects pasted beside those of BUFFER1. The
+original buffers are destroyed."
   (when (and buffer1 buffer2)
     (compose buffer1 
 	     (translate buffer2
@@ -688,9 +701,11 @@ slowdown. See also quadtree.lisp")
 			0))))
 
 (defun stack-vertically (&rest buffers)
+  "Combine BUFFERS into a single buffer, with each buffer stacked vertically."
   (reduce #'compose-below buffers :initial-value (with-new-buffer)))
 
 (defun stack-horizontally (&rest buffers)
+  "Combine BUFFERS into a single buffer, with each buffer stacked horizontally."
   (reduce #'compose-beside buffers :initial-value (with-new-buffer)))
 
 (define-method flip-horizontally buffer ()
@@ -719,6 +734,8 @@ slowdown. See also quadtree.lisp")
    (flip-vertically (duplicate self))))
 
 (defun with-border (border buffer)
+  "Return a new buffer with the objects from BUFFER
+surrounded by a border of thickness BORDER units."
   (with-fields (height width) buffer
     (with-new-buffer 
       (paste-from (current-buffer) (find-object buffer) border border)
@@ -1086,9 +1103,10 @@ block found, or nil if none is found."
       (trim self))
     (start-alone (find-object self))))
 
-(defun on-screen-p (thing)
+(defun on-screen-p (node)
+  "Return non-nil when NODE touches the buffer's window bounding box."
   (contained-in-bounding-box 
-   thing
+   node
    (multiple-value-list (window-bounding-box (current-buffer)))))
 
 ;;; buffers.lisp ends here
