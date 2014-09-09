@@ -976,40 +976,7 @@ display."
 
 (defparameter *resource-file-extension* ".xelf"
 "XELF is a simple Lisp data interchange file format. An XELF file can
-contain one or more data resources. A 'resource' is an image, sound,
-text, font, lisp program, or other data whose interpretation is up to
-the client.
-
-An XELF resource can be either self-contained, or point to an
-external file for its data.
-
-A 'resource record' defines a resource. A resource record is a
-structure with the following elements:
-
- :NAME    A string; the name of the resource.
-          The colon character : is reserved and used to specify 
-          resource transformations; see below.
- :TYPE    A keyword symbol identifying the data type.
-          Corresponding handlers are the responsibility of the client.
-          See also `*resource-handlers*' and `load-resource'.
-
-          The special type :xelf is used to load the xelf file
-          specified in :FILE, from (optionally) another project
-          whose name is given in :DATA.
-
-          The special type :alias is used to provide multiple names
-          for a resource. The :DATA field contains the name of the
-          target resource. This name can specify resource
-          transformations, see below. 
-
- :PROPERTIES  Property list with extra data; for example :copyright,
-              :license, :author. 
-              The special property :AUTOLOAD, when non-nil causes
-              the resource to be loaded automatically upon startup 
-              (the default is to load resources on demand.)
-
- :FILE    Name of file to load data from, if any. 
-          Relative to directory of XELF file.
+contain one or more data resources. 
  :DATA    Lisp data encoding the resource itself, if any.
 
 In memory, these will be represented by resource structs (see below).
@@ -1284,7 +1251,25 @@ If a record with that name already exists, it is replaced."
      (mapcar #'expand-resource-description entries))))
 
 (defmacro defresource (&rest entries)
-  "Main macro for defining new project resources."
+"Define a new resource.
+
+A Xelf 'resource' is an image, sound, text, color, or font. Most
+resources will depend on a file for their data, such as a .PNG file
+for images and .WAV files for sounds.
+
+A 'resource record' defines a resource. A resource record is a
+property list with the following elements:
+
+ :NAME    A string; the name of the resource. (Required)
+ :TYPE    A keyword symbol identifying the data type.
+          Valid types are :color :music :image :sample :ttf :font
+          If TYPE is not given, Xelf will try to guess the file type
+          based on the extension given as the NAME.
+ :PROPERTIES 
+          Property list with extra data specific to resource TYPE.
+ :FILE    Name of file to load data from, if any. 
+          Relative to project directory.
+          If FILE is not given, use the NAME."
   `(eval-when (:load-toplevel)
      (xelf:add-resources 
       (resource-entries-to-plists ',entries))))
