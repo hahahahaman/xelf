@@ -205,6 +205,7 @@ emptyp
 enable-key-repeat
 events
 field-value
+find-direction
 find-bounding-box
 find-heading
 find-object
