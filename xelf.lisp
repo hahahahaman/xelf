@@ -163,8 +163,6 @@ color
 compose
 compose-below
 compose-beside 
-compose-blank-fields
-compose-blank-fields
 create-path
 create-project-image
 current-buffer
