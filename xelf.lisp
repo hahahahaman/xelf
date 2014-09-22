@@ -70,7 +70,8 @@
 *joystick-dead-zone*
 *joystick-device*
 *joystick-device-number*
-*joystick-mapping*
+*joystick-profile*
+*joystick-profiles*
 *linux*
 *message-function*
 *message-history*
