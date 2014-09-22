@@ -1340,7 +1340,7 @@ The following node fields will control sprite drawing:
              See the function `set-blending-mode' for a list of modes."
   (with-fields (image x y z image-heading width color height blend opacity) self
     (if image 
-	(draw-image image x y :z z
+	(draw-image image x y :z (or z 0)
 		    :blend blend :opacity opacity
 		    :height height :width width)
 	(draw-box x y width height :color color))))
