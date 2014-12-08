@@ -2277,9 +2277,26 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
 (defun draw-textured-rectangle-* (x y z width height texture 
 				  &key u1 v1 u2 v2 
 				       angle
+				       tex-w tex-h
+				       clip-x clip-y clip-w clip-h
 				       (blend :alpha)
-				       (opacity 1.0) 
+				       (opacity 1.0)
 				       (vertex-color "white"))
+  "Draw an OpenGL textured rectangle at X, Y, Z with width WIDTH and height HEIGHT.
+The argument TEXTURE is a texture returned by FIND-TEXTURE.
+
+U1, U2, V1, V2 set the left, right, top, and bottom most positions of the GL_QUADS,
+respectively (NOTE: 0 starts from the center of the rectangle not the top left,
+because the rectangle is rotated around the center and the drawing position is shifted to
+accomodate).
+
+The rectangle is rotated around its center by ANGLE degrees clockwise.
+
+The original texture can be clipped by passing the texture width TEX-W and
+texture height TEX-H as well as a rectangle CLIP-X, CLIP-Y, CLIP-W, CLIP-H
+that defines the portion of the texture to be drawn.
+
+BLEND sets the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
   (if (null blend)
       (gl:disable :blend)
       (progn (enable-texture-blending)	
@@ -2297,23 +2314,39 @@ the blending mode and can be one of :ALPHA, :ADDITIVE, :MULTIPLY."
       (gl:translate cx cy 0)
       (when angle (gl:rotate angle 0 0 1))
       (gl:with-primitive :quads
-	(let* ((x1 (- hw))
-	       (x2 (+ hw))
-	       (y1 (- hh))
-	       (y2 (+ hh))
-	       (u1* (or u1 x1))
-	       (v1* (or v1 y1))
-	       (u2* (or u2 x2))
-	       (v2* (or v2 y2)))
-	  (gl:tex-coord 0 1)
-	  (gl:vertex u1* v2* (- 0 z)) 
-	  (gl:tex-coord 1 1)
-	  (gl:vertex u2* v2* (- 0 z)) 
-	  (gl:tex-coord 1 0)
-	  (gl:vertex u2* v1* (- 0 z)) 
-	  (gl:tex-coord 0 0)
-	  (gl:vertex u1* v1* (- 0 z))))
-      (gl:translate (- cx) (- cy) 0))))
+	(macrolet ((float-if ((&rest test-values) value &optional else)
+		     `(if (and ,@test-values)
+			  (coerce ,value 'float)
+			  ,else)))
+	  (let* ((x1 (- hw))
+		 (x2 (+ hw))
+		 (y1 (- hh))
+		 (y2 (+ hh))
+		 (u1* (or u1 x1))
+		 (v1* (or v1 y1))
+		 (u2* (or u2 x2))
+		 (v2* (or v2 y2))
+		 (tex-top (float-if (clip-y tex-h)
+				    (/ clip-y tex-h)
+				    0))
+		 (tex-bot (float-if (clip-y clip-h tex-h)
+				    (/ (+ clip-y clip-h) tex-h)
+				    1))
+		 (tex-left (float-if (clip-x tex-w)
+				     (/ clip-x tex-w)
+				     0))
+		 (tex-right (float-if (clip-x clip-w tex-w)
+				      (/ (+ clip-x clip-w) tex-w)
+				      1)))
+	    (gl:tex-coord tex-left tex-bot)
+	    (gl:vertex u1* v2* (- 0 z))
+	    (gl:tex-coord tex-right tex-bot)
+	    (gl:vertex u2* v2* (- 0 z))
+	    (gl:tex-coord tex-right tex-top)
+	    (gl:vertex u2* v1* (- 0 z))
+	    (gl:tex-coord tex-left tex-top)
+	    (gl:vertex u1* v1* (- 0 z)))))
+	(gl:translate (- cx) (- cy) 0))))
 
 (defvar *image-opacity* nil)
 
