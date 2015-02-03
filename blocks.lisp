@@ -1577,7 +1577,8 @@ The order is (TOP LEFT RIGHT BOTTOM)."
   (with-fields (x y width height) self
     (when (and width height)
       (point-in-rectangle-p (cfloat x) (cfloat y) (cfloat width) (cfloat height)
-			    top left (- right left) (- bottom top)))))
+			    (cfloat top) (cfloat left)
+			    (cfloat (- right left)) (cfloat(- bottom top))))))
 
 ;; (define-method contained-in-bounding-box nil (bounding-box)
 ;;   (bounding-box-contains bounding-box (multiple-value-list (bounding-box self))))

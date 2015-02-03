@@ -225,6 +225,7 @@ forward
 get-color
 get-nodes
 do-nodes
+gl-color-values-from-string
 glide-follow
 glide-window-to
 glide-window-to-node
